@@ -1,0 +1,6 @@
+[submodule "TestDeFiAgent/lib/forge-std"]
+	path = TestDeFiAgent/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "TestBasicAgent/lib/forge-std"]
+	path = TestBasicAgent/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

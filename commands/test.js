@@ -1,4 +1,12 @@
-const execa = require('execa');
+const execa = (() => {
+  try {
+    return require('execa');
+  } catch {
+    console.error('execa not found. Installing...');
+    require('child_process').execSync('npm install execa', { stdio: 'inherit' });
+    return require('execa');
+  }
+})();
 const fs = require('fs');
 const path = require('path');
 
@@ -13,18 +21,33 @@ async function test() {
 
     console.log('🧪 Running tests in local sandbox...');
 
-    // Check if forge is installed
+    // Find forge binary
+    let forgePath = 'forge';
+    const possiblePaths = [
+      '/home/posmproject/.foundry/bin/forge',
+      '/usr/local/bin/forge',
+      'forge'
+    ];
+    
+    for (const p of possiblePaths) {
+      try {
+        await execa(p, ['--version'], { stdio: 'pipe' });
+        forgePath = p;
+        break;
+      } catch {}
+    }
+
+    // Check if forge is available
     try {
-      await execa('forge', ['--version'], { stdio: 'pipe' });
+      await execa(forgePath, ['--version'], { stdio: 'pipe' });
     } catch (error) {
       console.error('Error: Foundry is not installed. Please install Foundry first:');
-      console.error('curl -L https://foundry.paradigm.xyz | bash');
-      console.error('foundryup');
+      console.error('curl -L https://foundry.paradigm.xyz | bash && foundryup');
       process.exit(1);
     }
 
-    // Run forge test
-    await execa('forge', ['test'], {
+    // Run forge test with verbose output
+    await execa(forgePath, ['test', '-vvv'], {
       cwd: process.cwd(),
       stdio: 'inherit'
     });
@@ -32,6 +55,9 @@ async function test() {
     console.log('✅ Tests completed successfully!');
   } catch (error) {
     console.error('Error running tests:', error.message);
+    if (error.exitCode && error.exitCode !== 0) {
+      console.error('Some tests failed. Check the output above for details.');
+    }
     process.exit(1);
   }
 }

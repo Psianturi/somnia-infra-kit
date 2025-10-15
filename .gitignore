@@ -46,3 +46,6 @@ coverage/
 # Build outputs
 dist/
 build/
+
+# Documentation (temporary)
+docs/
