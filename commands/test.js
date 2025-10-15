@@ -34,7 +34,9 @@ async function test() {
         await execa(p, ['--version'], { stdio: 'pipe' });
         forgePath = p;
         break;
-      } catch {}
+      } catch (err) {
+        // Ignore error and try next path
+      }
     }
 
     // Check if forge is available

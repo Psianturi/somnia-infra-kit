@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-async function verify(contractAddress, options = {}) {
+async function verify(contractAddress) {
   try {
     if (!contractAddress) {
       console.error('Error: Contract address is required');
@@ -32,7 +32,9 @@ async function verify(contractAddress, options = {}) {
         await execa(p, ['--version'], { stdio: 'pipe' });
         forgePath = p;
         break;
-      } catch {}
+      } catch (err) {
+        // Ignore error and try next path
+      }
     }
 
     const rpcUrl = process.env.SOMNIA_RPC_URL;

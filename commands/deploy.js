@@ -62,7 +62,9 @@ async function deploy() {
         await execa(p, ['--version'], { stdio: 'pipe' });
         forgePath = p;
         break;
-      } catch {}
+      } catch (err) {
+        // Ignore error and try next path
+      }
     }
 
     // Run forge script for deployment
