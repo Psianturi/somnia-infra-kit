@@ -38,7 +38,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: 'latest'
+          version: 'nightly'
 
       - name: Lint Solidity
         run: forge fmt --check
