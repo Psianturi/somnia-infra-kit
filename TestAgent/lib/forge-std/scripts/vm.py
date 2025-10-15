@@ -149,25 +149,23 @@ def cmp_cheatcode(a: "Cheatcode", b: "Cheatcode") -> int:
 # HACK: A way to add group header comments without having to modify printer code
 def prefix_with_group_headers(cheats: list["Cheatcode"]):
     s = set()
-    for i, cheat in enumerate(cheats):
-        if cheat.group in s:
-            continue
-
-        s.add(cheat.group)
-
-        c = copy.deepcopy(cheat)
-        c.func.description = ""
-        c.func.declaration = f"// ======== {group(c.group)} ========"
-        cheats.insert(i, c)
+    result = []
+    for cheat in cheats:
+        if cheat.group not in s:
+            s.add(cheat.group)
+            c = copy.deepcopy(cheat)
+            c.func.description = ""
+            c.func.declaration = f"// ======== {group(c.group)} ========"
+            result.append(c)
+        result.append(cheat)
+    cheats[:] = result
     return cheats
 
 
 def group(s: str) -> str:
-    if s == "evm":
-        return "EVM"
-    if s == "json":
-        return "JSON"
-    return s[0].upper() + s[1:]
+    """Convert group name to proper case format."""
+    special_cases = {"evm": "EVM", "json": "JSON"}
+    return special_cases.get(s, s.capitalize())
 
 
 class Visibility(PyEnum):
@@ -380,8 +378,11 @@ class Cheatcodes:
 
     @staticmethod
     def from_json_file(file_path: str) -> "Cheatcodes":
-        with open(file_path, "r") as f:
-            return Cheatcodes.from_dict(json.load(f))
+        try:
+            with open(file_path, "r") as f:
+                return Cheatcodes.from_dict(json.load(f))
+        except (FileNotFoundError, PermissionError, json.JSONDecodeError, KeyError, TypeError) as e:
+            raise ValueError(f"Error loading cheatcodes from file {file_path}: {e}")
 
 
 class Item(PyEnum):
@@ -592,7 +593,10 @@ class CheatcodesPrinter:
         if s == "":
             return
 
-        s = map(lambda line: line.lstrip(), s.split("\n"))
+        try:
+            s = [line.lstrip() for line in s.split("\n")]
+        except (AttributeError, TypeError):
+            s = [""]
         if self.block_doc_style:
             self._p_str("/*")
             if doc:
@@ -603,7 +607,10 @@ class CheatcodesPrinter:
                 self._p_str(" ")
                 if doc:
                     self._p_str("* ")
-                self._p_str(line)
+                try:
+                    self._p_str(line)
+                except (TypeError, AttributeError):
+                    self._p_str("")
                 self._p_nl()
             self._p_indent()
             self._p_str(" */")
@@ -619,7 +626,10 @@ class CheatcodesPrinter:
                     self._p_str("/// ")
                 else:
                     self._p_str("// ")
-                self._p_str(line)
+                try:
+                    self._p_str(line)
+                except (TypeError, AttributeError):
+                    self._p_str("")
                 self._p_nl()
 
     def _with_indent(self, f: VoidFn):

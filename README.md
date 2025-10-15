@@ -2,19 +2,19 @@
 
 A comprehensive CLI tool and sandbox environment for developing and deploying Autonomous AI Agents on the Somnia Blockchain. This toolkit provides everything developers need to build, test, and deploy AI agents with just a few commands.
 
-## ✨ Key Features
+## Key Features
 
-- **🚀 Instant Setup**: Bootstrap complete AI Agent projects in seconds
-- **🧪 Local Testing**: Comprehensive test suite with Foundry integration
-- **🔒 Secure Deployment**: Encrypted credential management and safe deployment
-- **📋 Multiple Templates**: Specialized templates for DeFi, NFT, and basic agents
-- **⚡ Developer Experience**: Interactive prompts and clear feedback
-- **🔍 Project Monitoring**: Built-in status checking and contract verification
+- **Instant Setup**: Bootstrap complete AI Agent projects in seconds
+- **Local Testing**: Comprehensive test suite with Foundry integration
+- **Secure Deployment**: Encrypted credential management and safe deployment
+- **Multiple Templates**: Specialized templates for DeFi, NFT, and basic agents
+- **Developer Experience**: Interactive prompts and clear feedback
+- **Project Monitoring**: Built-in status checking and contract verification
 
-## 📦 Installation
+## Installation
 
 ```bash
-npm install -g @somnia/agent-cli
+npm install -g @somnia/ai-agent-cli
 ```
 
 **Verify installation:**
@@ -193,7 +193,7 @@ MyDeFiAgent/
 
 ```bash
 # 1. Install CLI
-npm install -g @somnia/agent-cli
+npm install -g @somnia/ai-agent-cli
 
 # 2. Create project
 somnia-cli init MyFirstAgent
@@ -329,8 +329,3 @@ MIT License - see LICENSE file for details.
 
 ---
 
-**Repository**: https://github.com/Psianturi/somnia-infra-kit
-
-**Quick Links:**
-- [Changelog](CHANGELOG.md) - Version history
-- Documentation and guides coming soon

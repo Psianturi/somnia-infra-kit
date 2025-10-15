@@ -1,12 +1,10 @@
-const fs = (() => {
-  try {
-    return require('fs-extra');
-  } catch {
-    console.error('fs-extra not found. Installing...');
-    require('child_process').execSync('npm install fs-extra', { stdio: 'inherit' });
-    return require('fs-extra');
-  }
-})();
+let fs;
+try {
+  fs = require('fs-extra');
+} catch (error) {
+  console.error('fs-extra module is required but not found. Please install it with: npm install fs-extra');
+  process.exit(1);
+}
 const path = require('path');
 
 function validateProjectName(name) {

@@ -1,0 +1,41 @@
+name: Deploy Solidity
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 'latest'
+
+      - name: Build Solidity contracts
+        run: forge build --root ./TestAgent
+
+      - name: Deploy to Testnet/Mainnet
+        env:
+          RPC_URL: ${{ secrets.RPC_URL }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./TestAgent
+
+      - name: Verify contract (optional)
+        run: echo 'Integrate contract verification here if needed.'
+        # Example: forge verify-contract ...
+        # Requires additional setup

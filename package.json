@@ -1,5 +1,5 @@
 {
-  "name": "@somnia/agent-cli",
+  "name": "@somnia/ai-agent-cli",
   "version": "1.0.0",
   "description": "CLI tool for Somnia AI Agents",
   "main": "index.js",
