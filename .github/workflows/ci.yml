@@ -52,6 +52,15 @@ jobs:
           fi
         continue-on-error: true
 
+      - name: Install Forge Dependencies
+        run: |
+          if command -v forge &> /dev/null; then
+            cd agent-template && forge install || echo 'Forge install skipped'
+          else
+            echo 'Foundry not available, skipping forge install'
+          fi
+        continue-on-error: true
+
       - name: Test Solidity Templates
         run: |
           if command -v forge &> /dev/null; then
