@@ -1,0 +1,121 @@
+{
+  "Somnia Agent Contract": {
+    "prefix": "somnia-agent",
+    "body": [
+      "// SPDX-License-Identifier: MIT",
+      "pragma solidity ^0.8.19;",
+      "",
+      "/**",
+      " * @title ${1:AgentName}",
+      " * @dev ${2:Agent description}",
+      " */",
+      "contract ${1:AgentName} {",
+      "    address public owner;",
+      "    bool public isActive;",
+      "    uint256 public lastUpdate;",
+      "    ",
+      "    event AgentTriggered(uint256 timestamp);",
+      "    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);",
+      "    ",
+      "    modifier onlyOwner() {",
+      "        require(msg.sender == owner, \"Not the owner\");",
+      "        _;",
+      "    }",
+      "    ",
+      "    modifier onlyActive() {",
+      "        require(isActive, \"Agent not active\");",
+      "        _;",
+      "    }",
+      "    ",
+      "    constructor() {",
+      "        owner = msg.sender;",
+      "        isActive = true;",
+      "        lastUpdate = block.timestamp;",
+      "    }",
+      "    ",
+      "    function triggerAction() external onlyOwner onlyActive {",
+      "        lastUpdate = block.timestamp;",
+      "        emit AgentTriggered(block.timestamp);",
+      "    }",
+      "    ",
+      "    function getAgentStatus() external view returns (bool active, uint256 lastUpdateTime) {",
+      "        return (isActive, lastUpdate);",
+      "    }",
+      "}"
+    ],
+    "description": "Create a basic Somnia AI Agent contract"
+  },
+  "DeFi Agent Contract": {
+    "prefix": "somnia-defi",
+    "body": [
+      "// SPDX-License-Identifier: MIT",
+      "pragma solidity ^0.8.19;",
+      "",
+      "contract ${1:DeFiAgent} {",
+      "    address public owner;",
+      "    bool public isActive;",
+      "    uint256 public currentPrice;",
+      "    uint256 public priceThreshold;",
+      "    bool public tradingEnabled;",
+      "    ",
+      "    event PriceUpdated(uint256 newPrice);",
+      "    event ThresholdReached(uint256 price);",
+      "    event TradeExecuted(uint256 amount);",
+      "    ",
+      "    modifier onlyOwner() {",
+      "        require(msg.sender == owner, \"Not the owner\");",
+      "        _;",
+      "    }",
+      "    ",
+      "    constructor(uint256 _threshold) {",
+      "        owner = msg.sender;",
+      "        isActive = true;",
+      "        priceThreshold = _threshold;",
+      "        tradingEnabled = false;",
+      "    }",
+      "    ",
+      "    function updatePrice(uint256 _price) external onlyOwner {",
+      "        currentPrice = _price;",
+      "        emit PriceUpdated(_price);",
+      "        ",
+      "        if (_price >= priceThreshold) {",
+      "            emit ThresholdReached(_price);",
+      "        }",
+      "    }",
+      "}"
+    ],
+    "description": "Create a DeFi monitoring agent contract"
+  },
+  "Agent Modifier": {
+    "prefix": "somnia-modifier",
+    "body": [
+      "modifier ${1:modifierName}() {",
+      "    require(${2:condition}, \"${3:Error message}\");",
+      "    _;",
+      "}"
+    ],
+    "description": "Create a custom modifier for Somnia agents"
+  },
+  "Agent Event": {
+    "prefix": "somnia-event",
+    "body": [
+      "event ${1:EventName}(${2:parameters});"
+    ],
+    "description": "Create an event for Somnia agents"
+  },
+  "Price Monitoring Function": {
+    "prefix": "somnia-price",
+    "body": [
+      "function updatePrice(uint256 _price) external onlyOwner {",
+      "    currentPrice = _price;",
+      "    emit PriceUpdated(_price);",
+      "    ",
+      "    if (_price ${1:>=} priceThreshold) {",
+      "        emit ThresholdReached(_price);",
+      "        ${2:// Additional logic}",
+      "    }",
+      "}"
+    ],
+    "description": "Add price monitoring functionality"
+  }
+}

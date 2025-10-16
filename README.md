@@ -1,7 +1,8 @@
 # Somnia AI Agent CLI & Sandbox
 
 [![npm version](https://badge.fury.io/js/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm downloads](https://img.shields.io/npm/dt/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
+[![GitHub release](https://img.shields.io/github/v/release/Psianturi/somnia-infra-kit.svg)](https://github.com/Psianturi/somnia-infra-kit/releases)
 
 A comprehensive CLI tool and sandbox environment for developing and deploying Autonomous AI Agents on the Somnia Blockchain. This toolkit provides everything developers need to build, test, and deploy AI agents with just a few commands.
 
@@ -23,8 +24,13 @@ npm install -g somnia-ai-agent-cli
 **Verify installation:**
 ```bash
 somnia-cli --version
+# Expected output: 1.0.4 (or latest version)
+
 somnia-cli --help
+# Shows all available commands
 ```
+
+**Latest Version:** [v1.0.4](https://www.npmjs.com/package/somnia-ai-agent-cli/v/1.0.4) - Template path resolution fixes for global installation
 
 ## 🎯 Quick Start Guide
 

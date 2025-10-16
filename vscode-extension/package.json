@@ -1,0 +1,44 @@
+{
+  "name": "somnia-solidity",
+  "displayName": "Somnia Solidity",
+  "description": "Syntax highlighting and IntelliSense for Somnia AI Agent contracts",
+  "version": "1.0.0",
+  "publisher": "somnia",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "solidity",
+    "somnia",
+    "blockchain",
+    "smart contracts",
+    "ai agents"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "somnia-solidity",
+        "aliases": ["Somnia Solidity", "somnia-sol"],
+        "extensions": [".sol"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "somnia-solidity",
+        "scopeName": "source.somnia-solidity",
+        "path": "./syntaxes/somnia-solidity.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "somnia-solidity",
+        "path": "./snippets/somnia-snippets.json"
+      }
+    ]
+  }
+}

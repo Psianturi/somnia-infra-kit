@@ -19,10 +19,11 @@ program
 program
   .command('init <projectName>')
   .description('Initialize a new Somnia AI Agent project')
-  .option('-t, --template <type>', 'Template type (basic, defi, nft)', 'basic')
+  .option('-t, --template <type>', 'Template type (basic, defi, nft) - if not specified, interactive menu will be shown')
+  .option('-w, --wizard', 'Use customization wizard to create personalized agent')
   .action((projectName, options) => {
     const init = require('./commands/init');
-    init(projectName, options.template);
+    init(projectName, options.template, options.wizard);
   });
 
 program
@@ -48,7 +49,8 @@ program
   .command('deploy')
   .description('Deploy the AI Agent contract to Somnia Testnet')
   .option('-n, --network <network>', 'Network to deploy to', 'testnet')
-  .option('--verify', 'Verify contract on explorer')
+  .option('--verify', 'Auto-verify contract on explorer (default: true)', true)
+  .option('--no-verify', 'Skip contract verification')
   .action((options) => {
     const deploy = require('./commands/deploy');
     deploy(options);
@@ -68,6 +70,22 @@ program
   .action((contractAddress) => {
     const verify = require('./commands/verify');
     verify(contractAddress);
+  });
+
+program
+  .command('upgrade')
+  .description('Upgrade project dependencies and templates')
+  .action(() => {
+    const upgrade = require('./commands/upgrade');
+    upgrade();
+  });
+
+program
+  .command('debug')
+  .description('Interactive debugging tools for gas analysis, tracing, and security')
+  .action(() => {
+    const debug = require('./commands/debug');
+    debug();
   });
 
 // Handle unknown commands

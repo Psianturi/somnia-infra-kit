@@ -6,6 +6,8 @@ try {
   process.exit(1);
 }
 const path = require('path');
+const inquirer = require('inquirer');
+const chalk = require('chalk');
 
 function validateProjectName(name) {
   if (!name || name.length === 0) {
@@ -19,9 +21,81 @@ function validateProjectName(name) {
   }
 }
 
-async function init(projectName, templateType = 'basic') {
+const TEMPLATES = {
+  basic: {
+    name: 'Basic Agent',
+    description: 'Simple autonomous agent with trigger functionality',
+    path: 'agent-template',
+    features: ['Automated triggers', 'Event logging', 'Owner access control']
+  },
+  defi: {
+    name: 'DeFi Agent',
+    description: 'Price monitoring & trading signals',
+    path: path.join('templates', 'defi-agent'),
+    features: ['Price monitoring', 'Trading signals', 'Multi-token support', 'Threshold alerts']
+  },
+  nft: {
+    name: 'NFT Agent',
+    description: 'Floor price tracking & opportunities',
+    path: path.join('templates', 'nft-agent'),
+    features: ['Floor price tracking', 'Collection monitoring', 'Opportunity detection']
+  }
+};
+
+async function selectTemplate() {
+  console.log(chalk.cyan('\n🎯 Somnia AI Agent Template Selection\n'));
+  
+  const templateChoices = Object.entries(TEMPLATES).map(([key, template]) => ({
+    name: `${chalk.bold(template.name)} - ${template.description}`,
+    value: key,
+    short: template.name
+  }));
+
+  const { selectedTemplate } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'selectedTemplate',
+      message: 'Select template type:',
+      choices: templateChoices,
+      pageSize: 10
+    }
+  ]);
+
+  // Show selected template features
+  const template = TEMPLATES[selectedTemplate];
+  console.log(chalk.green(`\n✅ Selected: ${template.name}`));
+  console.log(chalk.gray('Features included:'));
+  template.features.forEach(feature => {
+    console.log(chalk.gray(`  ✓ ${feature}`));
+  });
+  console.log('');
+
+  return selectedTemplate;
+}
+
+async function init(projectName, templateType = null, useWizard = false) {
   try {
     validateProjectName(projectName);
+    
+    // If wizard mode, run customization wizard
+    if (useWizard) {
+      const { runWizard, createCustomProject } = require('./wizard');
+      const config = await runWizard(projectName);
+      await createCustomProject(projectName, config);
+      
+      console.log(chalk.green(`\n✅ Custom agent project created: ${projectName}`));
+      console.log(chalk.gray(`📁 Project created at: ${path.join(process.cwd(), projectName)}`));
+      console.log(chalk.cyan('🚀 Next steps:'));
+      console.log(chalk.gray(`   cd ${projectName}`));
+      console.log(chalk.gray(`   forge install foundry-rs/forge-std`));
+      console.log(chalk.gray(`   forge test`));
+      return;
+    }
+    
+    // If no template specified, show interactive menu
+    if (!templateType) {
+      templateType = await selectTemplate();
+    }
     
     // Handle both local and global installation paths
     const getTemplatePath = (templateName) => {
@@ -38,14 +112,9 @@ async function init(projectName, templateType = 'basic') {
       }
     };
     
-    let templateDir;
-    if (templateType === 'defi') {
-      templateDir = getTemplatePath(path.join('templates', 'defi-agent'));
-    } else if (templateType === 'nft') {
-      templateDir = getTemplatePath(path.join('templates', 'nft-agent'));
-    } else {
-      templateDir = getTemplatePath('agent-template');
-    }
+    // Get template configuration
+    const template = TEMPLATES[templateType] || TEMPLATES.basic;
+    const templateDir = getTemplatePath(template.path);
     
     const projectDir = path.join(process.cwd(), projectName);
 
@@ -62,7 +131,7 @@ async function init(projectName, templateType = 'basic') {
       process.exit(1);
     }
 
-    console.log(`🛠️  Creating project ${projectName}...`);
+    console.log(chalk.cyan(`🛠️  Creating ${template.name} project: ${projectName}...`));
     
     // Copy template to new project directory
     try {

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Somnia Solidity",
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#somnia-specific"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.somnia-solidity",
+          "match": "\\b(contract|interface|library|pragma|import|using|for|function|modifier|event|struct|enum|mapping|if|else|while|for|do|break|continue|return|throw|try|catch)\\b"
+        },
+        {
+          "name": "storage.type.somnia-solidity",
+          "match": "\\b(uint|int|bool|address|string|bytes|byte)\\d*\\b"
+        },
+        {
+          "name": "storage.modifier.somnia-solidity",
+          "match": "\\b(public|private|internal|external|pure|view|payable|constant|immutable|override|virtual)\\b"
+        }
+      ]
+    },
+    "somnia-specific": {
+      "patterns": [
+        {
+          "name": "entity.name.function.somnia-agent",
+          "match": "\\b(triggerAction|getAgentStatus|updatePrice|executeTrade|vote)\\b"
+        },
+        {
+          "name": "support.class.somnia-agent",
+          "match": "\\b(AgentContract|DeFiAgent|NFTAgent|SomniaAgent)\\b"
+        },
+        {
+          "name": "variable.other.somnia-agent",
+          "match": "\\b(isActive|lastUpdate|currentPrice|priceThreshold|tradingEnabled)\\b"
+        },
+        {
+          "name": "support.function.somnia-modifier",
+          "match": "\\b(onlyOwner|onlyActive|whenNotPaused)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.somnia-solidity",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.somnia-solidity",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.somnia-solidity",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.somnia-solidity",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "numbers": {
+      "name": "constant.numeric.somnia-solidity",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    }
+  },
+  "scopeName": "source.somnia-solidity"
+}
