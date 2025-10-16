@@ -9,6 +9,10 @@ on:
       - 'agent-template/**'
       - 'templates/**'
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   check-version:
     runs-on: ubuntu-latest
@@ -17,7 +21,7 @@ jobs:
       new-version: ${{ steps.check.outputs.version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -40,12 +44,15 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org/'
@@ -56,31 +63,40 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Git Tag
         run: |
-          gh release create v${{ needs.check-version.outputs.new-version }} \
-            --title "Release v${{ needs.check-version.outputs.new-version }}" \
-            --notes "## Changes in v${{ needs.check-version.outputs.new-version }}
-          
-          - Template path resolution fixes for global installation
-          - Improved error handling and debugging
-          - Enhanced CLI functionality
-          
-          ### Installation
-          \`\`\`bash
-          npm install -g somnia-ai-agent-cli@${{ needs.check-version.outputs.new-version }}
-          \`\`\`
-          
-          ### Quick Start
-          \`\`\`bash
-          somnia-cli init MyAgent
-          cd MyAgent
-          somnia-cli config
-          somnia-cli test
-          somnia-cli deploy
-          \`\`\`"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag v${{ needs.check-version.outputs.new-version }}
+          git push origin v${{ needs.check-version.outputs.new-version }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.check-version.outputs.new-version }}
+          name: Release v${{ needs.check-version.outputs.new-version }}
+          body: |
+            ## Changes in v${{ needs.check-version.outputs.new-version }}
+            
+            - Template path resolution fixes for global installation
+            - Improved error handling and debugging
+            - Enhanced CLI functionality
+            
+            ### Installation
+            ```bash
+            npm install -g somnia-ai-agent-cli@${{ needs.check-version.outputs.new-version }}
+            ```
+            
+            ### Quick Start
+            ```bash
+            somnia-cli init MyAgent
+            cd MyAgent
+            somnia-cli config
+            somnia-cli test
+            somnia-cli deploy
+            ```
+          draft: false
+          prerelease: false
 
       - name: Check if version already published
         id: check-npm
