@@ -7,7 +7,6 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -26,16 +25,17 @@ jobs:
           version: 'nightly'
 
       - name: Build Solidity contracts
-        run: forge build --root ./TestAgent
+        run: forge build --root ./agent-template
 
       - name: Deploy to Testnet/Mainnet
         env:
           RPC_URL: ${{ secrets.RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./TestAgent
+          forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./agent-template
 
       - name: Verify contract (optional)
-        run: echo 'Integrate contract verification here if needed.'
-        # Example: forge verify-contract ...
-        # Requires additional setup
+        run: |
+          # Example verification command (adjust based on your needs)
+          # forge verify-contract --rpc-url $RPC_URL --verifier etherscan <contract_address> <contract_path>:<contract_name>
+          echo 'Contract verification not implemented. Add forge verify-contract command here.'

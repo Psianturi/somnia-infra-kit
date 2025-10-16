@@ -21,25 +21,47 @@ A comprehensive CLI tool and sandbox environment for developing and deploying Au
 ## Installation
 
 ```bash
+# Install latest version
 npm install -g somnia-ai-agent-cli
+
+# Or install specific version
+npm install -g somnia-ai-agent-cli@1.0.5
 ```
 
 **Verify installation:**
 ```bash
 somnia-cli --version
-# Expected output: 1.1.0 (or latest version)
+# Expected output: 1.0.5 (or latest version)
 
 somnia-cli --help
 # Shows all available commands
 ```
 
-**Latest Version:** [v1.1.0](https://www.npmjs.com/package/somnia-ai-agent-cli/v/1.1.0) - Interactive template selection and advanced CLI features
+**Latest Version:** [v1.0.5](https://www.npmjs.com/package/somnia-ai-agent-cli) - Template path fixes and deployment improvements
+
+**Previous Versions:**
+- v1.0.5 - Template path fixes and deployment improvements
+- v1.0.4 - Enhanced DeFi and NFT templates
+- v1.0.1 - Initial release with basic agent template
+- v1.0.0 - Beta release
+
+**Upgrade from older versions:**
+```bash
+# Uninstall old version
+npm uninstall -g somnia-ai-agent-cli
+
+# Install latest version
+npm install -g somnia-ai-agent-cli@latest
+
+# Verify upgrade
+somnia-cli --version
+```
 
 ## 🎯 Quick Start Guide
 
 ### Step 1: Create Your First Agent
 ```bash
-# Interactive template selection (new in v1.1.0)
+# Interactive template selection
 somnia-cli init MyFirstAgent
 # Shows menu: Basic Agent, DeFi Agent, NFT Agent
 # Select template and see feature preview
@@ -100,9 +122,9 @@ Contract deployed at: 0x1234...5678
 somnia-cli verify 0x1234...5678
 ```
 
-## 🚀 New in v1.1.0
+## 🚀 Advanced Features
 
-### Interactive Template Selection
+### 🎯 Interactive Template Selection
 ```bash
 # No template specified - shows interactive menu
 somnia-cli init MyAgent
@@ -113,7 +135,7 @@ somnia-cli init MyAgent
 #     NFT Agent - Floor price tracking & opportunities
 ```
 
-### Customization Wizard
+### 🧿 Customization Wizard
 ```bash
 # Create personalized agent with wizard
 somnia-cli init MyCustomAgent --wizard
@@ -124,7 +146,7 @@ somnia-cli init MyCustomAgent --wizard
 # - Generates custom smart contract
 ```
 
-### Project Upgrades
+### ⬆️ Project Upgrades
 ```bash
 # Keep your project up-to-date
 somnia-cli upgrade
@@ -135,7 +157,7 @@ somnia-cli upgrade
 # - New features and improvements
 ```
 
-### Built-in Debugging
+### 🐛 Built-in Debugging Tools
 ```bash
 # Interactive debugging tools
 somnia-cli debug
@@ -384,10 +406,10 @@ cat .env
 
 ## 📋 Requirements
 
-- **Node.js** >= 20.0.0
+- **Node.js** >= 18.0.0 (recommended: >= 20.0.0)
 - **Git** (for dependency management)
 - **Foundry** (automatically detected and used)
-- **Somnia Testnet** access with SOM tokens
+- **Somnia Testnet** access with STT tokens
 
 ## 🤝 Contributing
 
