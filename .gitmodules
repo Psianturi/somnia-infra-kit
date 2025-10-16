@@ -1,13 +1,3 @@
-[submodule "TestDeFiAgent/lib/forge-std"]
-	path = TestDeFiAgent/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "TestBasicAgent/lib/forge-std"]
-	path = TestBasicAgent/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "lib/forge-std"]
-	path = lib/forge-std
-[submodule "TestBasic/lib/forge-std"]
-	path = TestBasic/lib/forge-std
 [submodule "agent-template/lib/forge-std"]
 	path = agent-template/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
