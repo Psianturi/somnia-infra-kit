@@ -8,3 +8,6 @@
 	path = lib/forge-std
 [submodule "TestBasic/lib/forge-std"]
 	path = TestBasic/lib/forge-std
+[submodule "agent-template/lib/forge-std"]
+	path = agent-template/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
