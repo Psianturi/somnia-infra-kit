@@ -1,12 +1,15 @@
 {
-  "name": "@somnia/ai-agent-cli",
+  "name": "somnia-ai-agent-cli",
   "version": "1.0.0",
   "description": "CLI tool for Somnia AI Agents",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "test": "node test/cli.test.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepublishOnly": "npm test",
+    "postinstall": "echo 'Thanks for installing Somnia AI Agent CLI! Run: somnia-cli --help'",
+    "demo": "echo 'Demo: somnia-cli init DemoAgent && cd DemoAgent && somnia-cli config && somnia-cli test'"
   },
   "keywords": [
     "somnia",
