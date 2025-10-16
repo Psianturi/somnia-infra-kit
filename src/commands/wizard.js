@@ -147,7 +147,7 @@ async function runWizard(projectName) {
 }
 
 function generateCustomContract(projectName, config) {
-  const { basicInfo, selectedFeatures, featureConfigs } = config;
+  const { basicInfo, selectedFeatures } = config;
   
   let contractCode = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;

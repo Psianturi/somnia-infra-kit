@@ -44,7 +44,7 @@ async function extractContractAddress(broadcastDir) {
   return null;
 }
 
-async function verifyContract(contractAddress, forgePath, rpcUrl) {
+async function verifyContract(contractAddress) {
   try {
     console.log(chalk.cyan('\n🔍 Verifying contract on Somnia Explorer...'));
     
@@ -110,7 +110,7 @@ async function deploy(options = {}) {
     }
 
     // Run forge script for deployment
-    const deployResult = await execa(forgePath, [
+    await execa(forgePath, [
       'script',
       'script/Deploy.s.sol',
       '--rpc-url',
@@ -137,7 +137,7 @@ async function deploy(options = {}) {
       
       // Auto-verify if enabled
       if (options.verify !== false) {
-        await verifyContract(contractAddress, forgePath, rpcUrl);
+        await verifyContract(contractAddress);
       }
       
       // Save deployment info

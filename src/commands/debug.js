@@ -185,10 +185,11 @@ async function debug() {
     console.log('');
     
     switch (debugMode) {
-      case 'gas':
-        await analyzeGasUsage();
-        break;
-      case 'trace':
+        case 'gas': {
+          await analyzeGasUsage();
+          break;
+        }
+      case 'trace': {
         const { txHash } = await inquirer.prompt([
           {
             type: 'input',
@@ -199,6 +200,7 @@ async function debug() {
         ]);
         await traceTransaction(txHash);
         break;
+      }
       case 'events':
         await analyzeEvents();
         break;
