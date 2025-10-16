@@ -1,17 +1,17 @@
-# Somnia AI Agent CLI & Sandbox
+# Somnia AI Agent CLI
 
 [![npm version](https://badge.fury.io/js/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
 [![npm downloads](https://img.shields.io/npm/dt/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
 [![GitHub release](https://img.shields.io/github/v/release/Psianturi/somnia-infra-kit.svg)](https://github.com/Psianturi/somnia-infra-kit/releases)
 
-A comprehensive CLI tool and sandbox environment for developing and deploying Autonomous AI Agents on the Somnia Blockchain. This toolkit provides everything developers need to build, test, and deploy AI agents with just a few commands.
+A comprehensive CLI tool for developing and deploying Autonomous AI Agents on the Somnia Blockchain. This toolkit provides everything developers need to build, test, and deploy AI agents with just a few commands.
 
 ## Key Features
 
 - **Instant Setup**: Bootstrap complete AI Agent projects in seconds
 - **Interactive Templates**: Smart template selection with feature preview
 - **Customization Wizard**: Personalized agent creation with guided setup
-- **Local Testing**: Comprehensive test suite with Foundry integration
+- **Testing**: Comprehensive test suite with Foundry integration
 - **Secure Deployment**: Encrypted credential management and auto-verification
 - **Project Upgrades**: Keep dependencies and templates up-to-date
 - **Built-in Debugging**: Gas analysis, transaction tracing, and security checks
@@ -91,7 +91,7 @@ somnia-cli test
 ```
 **Expected output:**
 ```
-🧪 Running tests in local sandbox...
+🧪 Running tests...
 [PASS] test_TriggerActionUpdatesTimestamp
 [PASS] test_TriggerActionUpdatesData  
 [PASS] test_OnlyOwnerCanTriggerAction
