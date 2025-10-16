@@ -8,6 +8,13 @@ on:
       - 'commands/**'
       - 'agent-template/**'
       - 'templates/**'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force release even if version unchanged'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -42,28 +49,43 @@ jobs:
 
   test-and-release:
     needs: check-version
-    if: needs.check-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     steps:
+      - name: Check if should proceed
+        id: should-proceed
+        run: |
+          if [ "${{ needs.check-version.outputs.version-changed }}" == "true" ] || [ "${{ github.event.inputs.force_release }}" == "true" ]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+            echo "✅ Proceeding with release process"
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+            echo "⏭️ No version change detected, skipping release"
+          fi
+
       - name: Checkout repository
+        if: steps.should-proceed.outputs.proceed == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: steps.should-proceed.outputs.proceed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
+        if: steps.should-proceed.outputs.proceed == 'true'
         run: npm install
 
       - name: Run tests
+        if: steps.should-proceed.outputs.proceed == 'true'
         run: npm test
 
       - name: Check and Create Git Tag
+        if: steps.should-proceed.outputs.proceed == 'true'
         id: create-tag
         run: |
           VERSION="v${{ needs.check-version.outputs.new-version }}"
@@ -88,7 +110,7 @@ jobs:
           fi
 
       - name: Create Release
-        if: steps.create-tag.outputs.tag-exists == 'false'
+        if: steps.should-proceed.outputs.proceed == 'true' && steps.create-tag.outputs.tag-exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.check-version.outputs.new-version }}
@@ -117,12 +139,13 @@ jobs:
           prerelease: false
 
       - name: Handle existing tag
-        if: steps.create-tag.outputs.tag-exists == 'true'
+        if: steps.should-proceed.outputs.proceed == 'true' && steps.create-tag.outputs.tag-exists == 'true'
         run: |
           echo "⚠️ Tag v${{ needs.check-version.outputs.new-version }} already exists"
           echo "Skipping release creation, proceeding with NPM publish check"
 
       - name: Check if version already published
+        if: steps.should-proceed.outputs.proceed == 'true'
         id: check-npm
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -135,7 +158,7 @@ jobs:
           fi
 
       - name: Publish to npm
-        if: steps.check-npm.outputs.should-publish == 'true'
+        if: steps.should-proceed.outputs.proceed == 'true' && steps.check-npm.outputs.should-publish == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -143,6 +166,7 @@ jobs:
           echo "✅ Successfully published v${{ needs.check-version.outputs.new-version }} to NPM"
 
       - name: Update README badge
+        if: steps.should-proceed.outputs.proceed == 'true'
         run: |
           echo "✅ Released v${{ needs.check-version.outputs.new-version }} successfully!"
           echo "📦 NPM: https://www.npmjs.com/package/somnia-ai-agent-cli"
