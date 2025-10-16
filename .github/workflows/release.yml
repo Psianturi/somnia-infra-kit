@@ -63,14 +63,32 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Create Git Tag
+      - name: Check and Create Git Tag
+        id: create-tag
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag v${{ needs.check-version.outputs.new-version }}
-          git push origin v${{ needs.check-version.outputs.new-version }}
+          VERSION="v${{ needs.check-version.outputs.new-version }}"
+          
+          # Check if tag already exists locally
+          if git tag -l "$VERSION" | grep -q "$VERSION"; then
+            echo "Tag $VERSION already exists locally, deleting..."
+            git tag -d "$VERSION"
+          fi
+          
+          # Check if tag exists on remote
+          if git ls-remote --tags origin | grep -q "refs/tags/$VERSION"; then
+            echo "Tag $VERSION already exists on remote"
+            echo "tag-exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new tag $VERSION"
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git tag "$VERSION"
+            git push origin "$VERSION"
+            echo "tag-exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
+        if: steps.create-tag.outputs.tag-exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.check-version.outputs.new-version }}
@@ -97,6 +115,12 @@ jobs:
             ```
           draft: false
           prerelease: false
+
+      - name: Handle existing tag
+        if: steps.create-tag.outputs.tag-exists == 'true'
+        run: |
+          echo "⚠️ Tag v${{ needs.check-version.outputs.new-version }} already exists"
+          echo "Skipping release creation, proceeding with NPM publish check"
 
       - name: Check if version already published
         id: check-npm
