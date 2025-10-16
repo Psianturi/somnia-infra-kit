@@ -1,6 +1,6 @@
 {
   "name": "somnia-ai-agent-cli",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "CLI tool for Somnia AI Agents",
   "main": "index.js",
   "type": "commonjs",
@@ -23,6 +23,14 @@
   "bin": {
     "somnia-cli": "./index.js"
   },
+  "files": [
+    "index.js",
+    "commands/",
+    "agent-template/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "commander": "^14.0.1",
     "dotenv": "^17.2.3",

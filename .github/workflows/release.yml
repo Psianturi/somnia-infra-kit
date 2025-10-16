@@ -1,0 +1,114 @@
+name: Release and Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'commands/**'
+      - 'agent-template/**'
+      - 'templates/**'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      new-version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Check if version changed
+        id: check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+          
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged: $CURRENT_VERSION"
+          fi
+
+  test-and-release:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.new-version }}
+          release_name: Release v${{ needs.check-version.outputs.new-version }}
+          body: |
+            ## Changes in v${{ needs.check-version.outputs.new-version }}
+            
+            - Template path resolution fixes for global installation
+            - Improved error handling and debugging
+            - Enhanced CLI functionality
+            
+            ### Installation
+            ```bash
+            npm install -g somnia-ai-agent-cli@${{ needs.check-version.outputs.new-version }}
+            ```
+            
+            ### Quick Start
+            ```bash
+            somnia-cli init MyAgent
+            cd MyAgent
+            somnia-cli config
+            somnia-cli test
+            somnia-cli deploy
+            ```
+          draft: false
+          prerelease: false
+
+      - name: Check if version already published
+        id: check-npm
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view somnia-ai-agent-cli@$VERSION version 2>/dev/null; then
+            echo "Version $VERSION already published to NPM"
+            echo "should-publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION ready to publish"
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.check-npm.outputs.should-publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --access public
+          echo "✅ Successfully published v${{ needs.check-version.outputs.new-version }} to NPM"
+
+      - name: Update README badge
+        run: |
+          echo "✅ Released v${{ needs.check-version.outputs.new-version }} successfully!"
+          echo "📦 NPM: https://www.npmjs.com/package/somnia-ai-agent-cli"
+          echo "🏷️ GitHub: https://github.com/Psianturi/somnia-infra-kit/releases/tag/v${{ needs.check-version.outputs.new-version }}"

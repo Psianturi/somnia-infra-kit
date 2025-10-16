@@ -23,20 +23,36 @@ async function init(projectName, templateType = 'basic') {
   try {
     validateProjectName(projectName);
     
+    // Handle both local and global installation paths
+    const getTemplatePath = (templateName) => {
+      const localPath = path.join(__dirname, '..', templateName);
+      const globalPath = path.join(__dirname, '..', '..', 'somnia-ai-agent-cli', templateName);
+      
+      if (fs.existsSync(localPath)) {
+        return localPath;
+      } else if (fs.existsSync(globalPath)) {
+        return globalPath;
+      } else {
+        // Fallback for npm global installation
+        return path.join(__dirname, '..', templateName);
+      }
+    };
+    
     let templateDir;
     if (templateType === 'defi') {
-      templateDir = path.join(__dirname, '..', 'templates', 'defi-agent');
+      templateDir = getTemplatePath(path.join('templates', 'defi-agent'));
     } else if (templateType === 'nft') {
-      templateDir = path.join(__dirname, '..', 'templates', 'nft-agent');
+      templateDir = getTemplatePath(path.join('templates', 'nft-agent'));
     } else {
-      templateDir = path.join(__dirname, '..', 'agent-template');
+      templateDir = getTemplatePath('agent-template');
     }
     
     const projectDir = path.join(process.cwd(), projectName);
 
     // Check if template exists
     if (!await fs.pathExists(templateDir)) {
-      console.error('Error: agent-template directory not found. Please ensure the template is available.');
+      console.error(`Error: Template directory not found at: ${templateDir}`);
+      console.error('Please ensure the template is available or try reinstalling the CLI.');
       process.exit(1);
     }
 
@@ -49,14 +65,27 @@ async function init(projectName, templateType = 'basic') {
     console.log(`🛠️  Creating project ${projectName}...`);
     
     // Copy template to new project directory
-    await fs.copy(templateDir, projectDir, {
-      filter: (src) => !src.includes('node_modules') && !src.includes('.git')
-    });
+    try {
+      await fs.copy(templateDir, projectDir, {
+        filter: (src) => {
+          // Allow the template directory itself and its contents, but exclude node_modules and .git within it
+          const relativePath = path.relative(templateDir, src);
+          return !relativePath.includes('node_modules') && !relativePath.includes('.git');
+        }
+      });
+    } catch (copyError) {
+      console.error(`Error copying template: ${copyError.message}`);
+      throw copyError;
+    }
     
     // Create .gitignore if it doesn't exist
     const gitignorePath = path.join(projectDir, '.gitignore');
     if (!await fs.pathExists(gitignorePath)) {
-      await fs.writeFile(gitignorePath, '.env\nnode_modules/\nout/\ncache/\nbroadcast/\nlib/\n');
+      try {
+        await fs.writeFile(gitignorePath, '.env\nnode_modules/\nout/\ncache/\nbroadcast/\nlib/\n');
+      } catch (error) {
+        console.log('⚠️  Could not create .gitignore file');
+      }
     }
     
     // Install forge-std dependencies
