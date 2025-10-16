@@ -9,11 +9,14 @@ A comprehensive CLI tool and sandbox environment for developing and deploying Au
 ## Key Features
 
 - **Instant Setup**: Bootstrap complete AI Agent projects in seconds
+- **Interactive Templates**: Smart template selection with feature preview
+- **Customization Wizard**: Personalized agent creation with guided setup
 - **Local Testing**: Comprehensive test suite with Foundry integration
-- **Secure Deployment**: Encrypted credential management and safe deployment
+- **Secure Deployment**: Encrypted credential management and auto-verification
+- **Project Upgrades**: Keep dependencies and templates up-to-date
+- **Built-in Debugging**: Gas analysis, transaction tracing, and security checks
+- **VS Code Integration**: Syntax highlighting and code snippets
 - **Multiple Templates**: Specialized templates for DeFi, NFT, and basic agents
-- **Developer Experience**: Interactive prompts and clear feedback
-- **Project Monitoring**: Built-in status checking and contract verification
 
 ## Installation
 
@@ -24,20 +27,29 @@ npm install -g somnia-ai-agent-cli
 **Verify installation:**
 ```bash
 somnia-cli --version
-# Expected output: 1.0.4 (or latest version)
+# Expected output: 1.1.0 (or latest version)
 
 somnia-cli --help
 # Shows all available commands
 ```
 
-**Latest Version:** [v1.0.4](https://www.npmjs.com/package/somnia-ai-agent-cli/v/1.0.4) - Template path resolution fixes for global installation
+**Latest Version:** [v1.1.0](https://www.npmjs.com/package/somnia-ai-agent-cli/v/1.1.0) - Interactive template selection and advanced CLI features
 
 ## 🎯 Quick Start Guide
 
 ### Step 1: Create Your First Agent
 ```bash
-# Create a basic AI agent project
+# Interactive template selection (new in v1.1.0)
 somnia-cli init MyFirstAgent
+# Shows menu: Basic Agent, DeFi Agent, NFT Agent
+# Select template and see feature preview
+
+# Or use specific template directly
+somnia-cli init MyFirstAgent --template basic
+
+# Or use customization wizard
+somnia-cli init MyFirstAgent --wizard
+
 cd MyFirstAgent
 
 # Check what was created
@@ -86,6 +98,52 @@ Contract deployed at: 0x1234...5678
 ```bash
 # Verify your deployed contract
 somnia-cli verify 0x1234...5678
+```
+
+## 🚀 New in v1.1.0
+
+### Interactive Template Selection
+```bash
+# No template specified - shows interactive menu
+somnia-cli init MyAgent
+# Displays:
+# ? Select template type:
+#   > Basic Agent - Simple autonomous agent
+#     DeFi Agent - Price monitoring & trading signals
+#     NFT Agent - Floor price tracking & opportunities
+```
+
+### Customization Wizard
+```bash
+# Create personalized agent with wizard
+somnia-cli init MyCustomAgent --wizard
+# Guided setup:
+# - Agent description and symbol
+# - Feature selection (price monitoring, trading, governance)
+# - Configuration parameters
+# - Generates custom smart contract
+```
+
+### Project Upgrades
+```bash
+# Keep your project up-to-date
+somnia-cli upgrade
+# Updates:
+# - CLI templates to latest version
+# - Foundry dependencies
+# - Security patches
+# - New features and improvements
+```
+
+### Built-in Debugging
+```bash
+# Interactive debugging tools
+somnia-cli debug
+# Options:
+# - Gas Analysis - Optimize gas usage
+# - Transaction Trace - Step through execution
+# - Event Analysis - Analyze emitted events
+# - Security Check - Find security issues
 ```
 
 ## 🛠️ Advanced Usage
@@ -156,12 +214,15 @@ somnia-cli status
 
 | Command | Description | Example |
 |---------|-------------|----------|
-| `init <name>` | Create new project | `somnia-cli init MyAgent` |
+| `init <name>` | Create new project (interactive) | `somnia-cli init MyAgent` |
 | `init <name> --template <type>` | Create with template | `somnia-cli init Bot --template defi` |
+| `init <name> --wizard` | Create with customization wizard | `somnia-cli init Bot --wizard` |
 | `config` | Setup environment | `somnia-cli config` |
 | `test` | Run test suite | `somnia-cli test` |
-| `deploy` | Deploy to testnet | `somnia-cli deploy` |
+| `deploy` | Deploy with auto-verification | `somnia-cli deploy` |
 | `verify <address>` | Verify contract | `somnia-cli verify 0x123...` |
+| `upgrade` | Update dependencies and templates | `somnia-cli upgrade` |
+| `debug` | Interactive debugging tools | `somnia-cli debug` |
 | `status` | Check project health | `somnia-cli status` |
 | `--help` | Show help | `somnia-cli --help` |
 
@@ -323,7 +384,7 @@ cat .env
 
 ## 📋 Requirements
 
-- **Node.js** >= 18.0.0
+- **Node.js** >= 20.0.0
 - **Git** (for dependency management)
 - **Foundry** (automatically detected and used)
 - **Somnia Testnet** access with SOM tokens

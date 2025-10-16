@@ -22,7 +22,7 @@ program
   .option('-t, --template <type>', 'Template type (basic, defi, nft) - if not specified, interactive menu will be shown')
   .option('-w, --wizard', 'Use customization wizard to create personalized agent')
   .action((projectName, options) => {
-    const init = require('./commands/init');
+    const init = require('./src/commands/init');
     init(projectName, options.template, options.wizard);
   });
 
@@ -31,7 +31,7 @@ program
   .description('Setup project configuration')
   .option('-g, --global', 'Set global configuration')
   .action((options) => {
-    const config = require('./commands/config');
+    const config = require('./src/commands/config');
     config(options);
   });
 
@@ -41,7 +41,7 @@ program
   .option('-v, --verbose', 'Verbose output')
   .option('-w, --watch', 'Watch for changes')
   .action((options) => {
-    const test = require('./commands/test');
+    const test = require('./src/commands/test');
     test(options);
   });
 
@@ -52,7 +52,7 @@ program
   .option('--verify', 'Auto-verify contract on explorer (default: true)', true)
   .option('--no-verify', 'Skip contract verification')
   .action((options) => {
-    const deploy = require('./commands/deploy');
+    const deploy = require('./src/commands/deploy');
     deploy(options);
   });
 
@@ -60,7 +60,7 @@ program
   .command('status')
   .description('Check project and environment status')
   .action(() => {
-    const status = require('./commands/status');
+    const status = require('./src/commands/status');
     status();
   });
 
@@ -68,7 +68,7 @@ program
   .command('verify <contractAddress>')
   .description('Verify deployed contract on block explorer')
   .action((contractAddress) => {
-    const verify = require('./commands/verify');
+    const verify = require('./src/commands/verify');
     verify(contractAddress);
   });
 
@@ -76,7 +76,7 @@ program
   .command('upgrade')
   .description('Upgrade project dependencies and templates')
   .action(() => {
-    const upgrade = require('./commands/upgrade');
+    const upgrade = require('./src/commands/upgrade');
     upgrade();
   });
 
@@ -84,7 +84,7 @@ program
   .command('debug')
   .description('Interactive debugging tools for gas analysis, tracing, and security')
   .action(() => {
-    const debug = require('./commands/debug');
+    const debug = require('./src/commands/debug');
     debug();
   });
 

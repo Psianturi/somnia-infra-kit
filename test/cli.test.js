@@ -22,8 +22,8 @@ test('CLI entry point exists', () => {
 });
 
 test('All command files exist', () => {
-  const commands = ['init.js', 'config.js', 'deploy.js', 'test.js', 'status.js'];
-  const commandsDir = path.join(__dirname, '..', 'commands');
+  const commands = ['init.js', 'config.js', 'deploy.js', 'test.js', 'status.js', 'verify.js', 'upgrade.js', 'debug.js', 'wizard.js'];
+  const commandsDir = path.join(__dirname, '..', 'src', 'commands');
   
   commands.forEach(cmd => {
     if (!fs.existsSync(path.join(commandsDir, cmd))) {

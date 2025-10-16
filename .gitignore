@@ -49,3 +49,18 @@ build/
 
 # Documentation (temporary)
 docs/
+
+# Package files
+*.tgz
+*.tar.gz
+
+# Test artifacts
+Test*/
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+*.tmp
+*.temp
