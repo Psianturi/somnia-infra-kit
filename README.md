@@ -39,11 +39,7 @@ somnia-cli --help
 
 **Latest Version:** [v1.0.5](https://www.npmjs.com/package/somnia-ai-agent-cli) - Template path fixes and deployment improvements
 
-**Previous Versions:**
-- v1.0.4 - Enhanced DeFi and NFT templates
-- v1.0.2 - Improved CLI functionality
-- v1.0.1 - Initial release with basic agent template
-- v1.0.0 - Beta release
+
 
 **Upgrade from older versions:**
 ```bash

@@ -10,11 +10,12 @@ const { Command } = (() => {
 })();
 
 const program = new Command();
+const packageJson = require('./package.json');
 
 program
   .name('somnia-cli')
   .description('CLI tool for developing and deploying Somnia AI Agents')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 program
   .command('init <projectName>')

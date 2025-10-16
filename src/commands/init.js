@@ -99,16 +99,18 @@ async function init(projectName, templateType = null, useWizard = false) {
     
     // Handle both local and global installation paths
     const getTemplatePath = (templateName) => {
-      const localPath = path.join(__dirname, '..', templateName);
-      const globalPath = path.join(__dirname, '..', '..', 'somnia-ai-agent-cli', templateName);
+      // For local development: src/commands -> root
+      const localPath = path.join(__dirname, '..', '..', templateName);
+      // For npm installation: node_modules/somnia-ai-agent-cli/src/commands -> node_modules/somnia-ai-agent-cli
+      const npmPath = path.join(__dirname, '..', '..', templateName);
       
       if (fs.existsSync(localPath)) {
         return localPath;
-      } else if (fs.existsSync(globalPath)) {
-        return globalPath;
+      } else if (fs.existsSync(npmPath)) {
+        return npmPath;
       } else {
-        // Fallback for npm global installation
-        return path.join(__dirname, '..', templateName);
+        // Fallback
+        return path.join(__dirname, '..', '..', templateName);
       }
     };
     
