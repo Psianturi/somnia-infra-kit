@@ -57,35 +57,30 @@ jobs:
         run: npm test
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ needs.check-version.outputs.new-version }}
-          release_name: Release v${{ needs.check-version.outputs.new-version }}
-          body: |
-            ## Changes in v${{ needs.check-version.outputs.new-version }}
-            
-            - Template path resolution fixes for global installation
-            - Improved error handling and debugging
-            - Enhanced CLI functionality
-            
-            ### Installation
-            ```bash
-            npm install -g somnia-ai-agent-cli@${{ needs.check-version.outputs.new-version }}
-            ```
-            
-            ### Quick Start
-            ```bash
-            somnia-cli init MyAgent
-            cd MyAgent
-            somnia-cli config
-            somnia-cli test
-            somnia-cli deploy
-            ```
-          draft: false
-          prerelease: false
+        run: |
+          gh release create v${{ needs.check-version.outputs.new-version }} \
+            --title "Release v${{ needs.check-version.outputs.new-version }}" \
+            --notes "## Changes in v${{ needs.check-version.outputs.new-version }}
+          
+          - Template path resolution fixes for global installation
+          - Improved error handling and debugging
+          - Enhanced CLI functionality
+          
+          ### Installation
+          \`\`\`bash
+          npm install -g somnia-ai-agent-cli@${{ needs.check-version.outputs.new-version }}
+          \`\`\`
+          
+          ### Quick Start
+          \`\`\`bash
+          somnia-cli init MyAgent
+          cd MyAgent
+          somnia-cli config
+          somnia-cli test
+          somnia-cli deploy
+          \`\`\`"
 
       - name: Check if version already published
         id: check-npm
