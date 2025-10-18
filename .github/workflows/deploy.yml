@@ -2,18 +2,8 @@ name: Deploy Solidity
 on:
   push:
     branches: [main]
-  release:
-    types: [published]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'testnet'
-        type: choice
-        options:
-        - testnet
-        - mainnet
+
 
 jobs:
   build-deploy:

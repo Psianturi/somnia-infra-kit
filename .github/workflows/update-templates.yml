@@ -4,6 +4,8 @@ description: >
   Otomasi update folder templates dari repo upstream dan auto-pull request jika ada perubahan.
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '0 13 * * *' # everyday  20:00 WIB (WIB = UTC+7)
   workflow_dispatch:
