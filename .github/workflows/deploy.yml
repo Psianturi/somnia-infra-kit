@@ -1,8 +1,6 @@
 name: Deploy Solidity
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
