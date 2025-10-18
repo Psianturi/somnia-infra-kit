@@ -57,7 +57,7 @@ jobs:
         env:
           SOMNIA_RPC_URL: ${{ secrets.SOMNIA_RPC_URL }}
           # Ensure PRIVATE_KEY has 0x prefix so vm.envUint can parse it
-          PRIVATE_KEY: ${{ format('0x{}', secrets.PRIVATE_KEY) }}
+          PRIVATE_KEY: ${{ format('0x{0}', secrets.PRIVATE_KEY) }}
         run: |
           # run from inside agent-template to avoid path/root mismatches
           forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root .
