@@ -25,8 +25,16 @@ jobs:
         with:
           version: 'nightly'
 
+
       - name: Build Solidity contracts
         run: forge build --root ./agent-template
+
+      - name: Check Deploy.s.sol exists
+        run: |
+          if [ ! -f agent-template/script/Deploy.s.sol ]; then
+            echo "Required deploy script not found!"
+            exit 1
+          fi
 
       - name: Deploy to Testnet/Mainnet
         env:
