@@ -8,9 +8,9 @@ const path = require('path');
 // Konfigurasi repo upstream dan folder lokal
 // Support token for private repo or authenticated clone
 const TEMPLATES_REPO_TOKEN = process.env.TEMPLATES_REPO_TOKEN;
-let UPSTREAM_REPO = 'https://github.com/Psianturi/somnia-infra-kit-templates.git';
+let UPSTREAM_REPO = 'https://github.com/Psianturi/somnia-infra-kit.git';
 if (TEMPLATES_REPO_TOKEN) {
-  UPSTREAM_REPO = `https://${TEMPLATES_REPO_TOKEN}@github.com/Psianturi/somnia-infra-kit-templates.git`;
+  UPSTREAM_REPO = `https://${TEMPLATES_REPO_TOKEN}@github.com/Psianturi/somnia-infra-kit.git`;
 }
 const TMP_DIR = './.tmp-templates';
 const LOCAL_TEMPLATES = path.resolve(__dirname, '../templates');
