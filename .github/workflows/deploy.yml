@@ -41,12 +41,25 @@ jobs:
       - name: "Check Deploy.s.sol exists"
         run: test -f agent-template/script/Deploy.s.sol || (echo "Deploy.s.sol missing" && exit 1)
 
+      - name: "Check PRIVATE_KEY secret present"
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          if [ -z "$PRIVATE_KEY" ]; then
+            echo "ERROR: PRIVATE_KEY is empty or not set in secrets"
+            exit 1
+          else
+            echo "PRIVATE_KEY is present (value not shown)"
+          fi
+
       - name: "Deploy to Testnet/Mainnet"
+        working-directory: ./agent-template
         env:
           SOMNIA_RPC_URL: ${{ secrets.SOMNIA_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./agent-template
+          # run from inside agent-template to avoid path/root mismatches
+          forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root .
 
       - name: "Verify contract (optional)"
         run: echo 'Contract verification not implemented. Add forge verify-contract command here.'
