@@ -1,9 +1,9 @@
 name: Deploy Solidity
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 
 jobs:
   build-deploy:
@@ -25,26 +25,28 @@ jobs:
         with:
           version: 'nightly'
 
-
-      - name: Build Solidity contracts
+      - name: "Build Solidity contracts"
         run: forge build --root ./agent-template
 
-      - name: Check Deploy.s.sol exists
+      - name: "Debug: list files"
         run: |
-          if [ ! -f agent-template/script/Deploy.s.sol ]; then
-            echo "Required deploy script not found!"
-            exit 1
-          fi
+          echo "PWD: $(pwd)"
+          ls -la
+          ls -la agent-template || true
+          ls -la agent-template/script || true
 
-      - name: Deploy to Testnet/Mainnet
+      - name: "Show Deploy.s.sol"
+        run: sed -n '1,200p' agent-template/script/Deploy.s.sol || true
+
+      - name: "Check Deploy.s.sol exists"
+        run: test -f agent-template/script/Deploy.s.sol || (echo "Deploy.s.sol missing" && exit 1)
+
+      - name: "Deploy to Testnet/Mainnet"
         env:
           SOMNIA_RPC_URL: ${{ secrets.SOMNIA_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
           forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./agent-template
 
-      - name: Verify contract (optional)
-        run: |
-          # Example verification command (adjust based on your needs)
-          # forge verify-contract --rpc-url $RPC_URL --verifier etherscan <contract_address> <contract_path>:<contract_name>
-          echo 'Contract verification not implemented. Add forge verify-contract command here.'
+      - name: "Verify contract (optional)"
+        run: echo 'Contract verification not implemented. Add forge verify-contract command here.'
