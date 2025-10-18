@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const { Command } = (() => {
   try {
     return require('commander');
@@ -87,6 +88,14 @@ program
   .action(() => {
     const debug = require('./src/commands/debug');
     debug();
+  });
+
+program
+  .command('custom-agent')
+  .description('Generate a custom agent smart contract using AI or interactive prompts')
+  .action(() => {
+    const customAgent = require('./src/commands/custom-agent');
+    customAgent();
   });
 
 // Handle unknown commands

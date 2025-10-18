@@ -1,0 +1,37 @@
+name: Update Agent Templates
+
+description: >
+  Otomasi update folder templates dari repo upstream dan auto-pull request jika ada perubahan.
+
+on:
+  schedule:
+    - cron: '0 13 * * *' # everyday  20:00 WIB (WIB = UTC+7)
+  workflow_dispatch:
+
+jobs:
+  update-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Update templates from upstream
+        run: node scripts/update-templates.js
+
+      - name: Commit & create PR if changed
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: 'chore: update agent templates from upstream'
+          title: 'Update agent templates'
+          body: 'Auto-update agent templates from upstream repo.'
+          branch: 'auto/update-templates'
