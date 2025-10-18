@@ -30,10 +30,10 @@ jobs:
 
       - name: Deploy to Testnet/Mainnet
         env:
-          RPC_URL: ${{ secrets.RPC_URL }}
+          SOMNIA_RPC_URL: ${{ secrets.SOMNIA_RPC_URL }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
         run: |
-          forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./agent-template
+          forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --root ./agent-template
 
       - name: Verify contract (optional)
         run: |
