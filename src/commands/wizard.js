@@ -4,6 +4,53 @@ const inquirer = require('inquirer');
 const chalk = require('chalk');
 
 const AGENT_FEATURES = {
+  staking: {
+    name: 'Staking',
+    description: 'Allow users to stake tokens and earn rewards',
+    code: `
+    mapping(address => uint256) public stakes;
+    uint256 public totalStaked;
+    
+    function stake(uint256 amount) external {
+        // Staking logic here
+        stakes[msg.sender] += amount;
+        totalStaked += amount;
+        emit Staked(msg.sender, amount);
+    }
+    event Staked(address indexed user, uint256 amount);
+    `
+  },
+  rewards: {
+    name: 'Rewards Distribution',
+    description: 'Distribute rewards to users based on activity or staking',
+    code: `
+    mapping(address => uint256) public rewards;
+    
+    function distributeReward(address user, uint256 amount) external onlyOwner {
+        rewards[user] += amount;
+        emit RewardDistributed(user, amount);
+    }
+    event RewardDistributed(address indexed user, uint256 amount);
+    `
+  },
+  accessControl: {
+    name: 'Access Control',
+    description: 'Restrict function access to specific roles',
+    code: `
+    mapping(address => bool) public admins;
+    
+    modifier onlyAdmin() {
+        require(admins[msg.sender], "Not admin");
+        _;
+    }
+    
+    function setAdmin(address user, bool isAdmin) external onlyOwner {
+        admins[user] = isAdmin;
+        emit AdminSet(user, isAdmin);
+    }
+    event AdminSet(address indexed user, bool isAdmin);
+    `
+  },
   priceMonitoring: {
     name: 'Price Monitoring',
     description: 'Monitor token prices and price changes',
@@ -230,112 +277,110 @@ contract ${projectName} {
 }
 
 async function createCustomProject(projectName, config) {
-  const projectDir = path.join(process.cwd(), projectName);
-  
+  // projectName is now absolute path to target folder
+  const targetDir = projectName;
+  const nameOnly = path.basename(targetDir);
+
   // Create project structure
-  await fs.ensureDir(path.join(projectDir, 'src'));
-  await fs.ensureDir(path.join(projectDir, 'test'));
-  await fs.ensureDir(path.join(projectDir, 'script'));
-  
+  await fs.ensureDir(path.join(targetDir, 'src'));
+  await fs.ensureDir(path.join(targetDir, 'test'));
+  await fs.ensureDir(path.join(targetDir, 'script'));
+
   // Generate custom contract
-  const contractCode = generateCustomContract(projectName, config);
-  await fs.writeFile(path.join(projectDir, 'src', `${projectName}.sol`), contractCode);
-  
+  const contractCode = generateCustomContract(nameOnly, config);
+  await fs.writeFile(path.join(targetDir, 'src', `${nameOnly}.sol`), contractCode);
+
   // Create foundry.toml
   const foundryConfig = `[profile.default]
-src = "src"
-out = "out"
-libs = ["lib"]
-solc_version = "0.8.19"
+  src = "src"
+  out = "out"
+  libs = ["lib"]
+  solc_version = "0.8.19"
 
-[rpc_endpoints]
-somnia_testnet = "https://dream-rpc.somnia.network"`;
-  
-  await fs.writeFile(path.join(projectDir, 'foundry.toml'), foundryConfig);
-  
+  [rpc_endpoints]
+  somnia_testnet = "https://dream-rpc.somnia.network"`;
+  await fs.writeFile(path.join(targetDir, 'foundry.toml'), foundryConfig);
+
   // Create basic test
   const testCode = `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+  pragma solidity ^0.8.19;
 
-import "forge-std/Test.sol";
-import "../src/${projectName}.sol";
+  import "forge-std/Test.sol";
+  import "../src/${nameOnly}.sol";
 
-contract ${projectName}Test is Test {
-    ${projectName} public agent;
-    
+  contract ${nameOnly}Test is Test {
+    ${nameOnly} public agent;
+      
     function setUp() public {
-        agent = new ${projectName}();
+      agent = new ${nameOnly}();
     }
-    
+      
     function test_InitialState() public {
-        assertTrue(agent.isActive());
-        assertEq(agent.owner(), address(this));
+      assertTrue(agent.isActive());
+      assertEq(agent.owner(), address(this));
     }
-    
+      
     function test_ToggleAgent() public {
-        agent.toggleAgent();
-        assertFalse(agent.isActive());
-        
-        agent.toggleAgent();
-        assertTrue(agent.isActive());
+      agent.toggleAgent();
+      assertFalse(agent.isActive());
+          
+      agent.toggleAgent();
+      assertTrue(agent.isActive());
     }
-}`;
-  
-  await fs.writeFile(path.join(projectDir, 'test', `${projectName}.t.sol`), testCode);
-  
+  }`;
+  await fs.writeFile(path.join(targetDir, 'test', `${nameOnly}.t.sol`), testCode);
+
   // Create deployment script
   const deployScript = `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+  pragma solidity ^0.8.19;
 
-import "forge-std/Script.sol";
-import "../src/${projectName}.sol";
+  import "forge-std/Script.sol";
+  import "../src/${nameOnly}.sol";
 
-contract Deploy${projectName} is Script {
+  contract Deploy${nameOnly} is Script {
     function run() external {
-        vm.startBroadcast();
-        
-        ${projectName} agent = new ${projectName}();
-        
-        console.log("${projectName} deployed at:", address(agent));
-        
-        vm.stopBroadcast();
+      vm.startBroadcast();
+          
+      ${nameOnly} agent = new ${nameOnly}();
+          
+      console.log("${nameOnly} deployed at:", address(agent));
+          
+      vm.stopBroadcast();
     }
-}`;
-  
-  await fs.writeFile(path.join(projectDir, 'script', `Deploy.s.sol`), deployScript);
-  
+  }`;
+  await fs.writeFile(path.join(targetDir, 'script', `Deploy.s.sol`), deployScript);
+
   // Create .gitignore
-  await fs.writeFile(path.join(projectDir, '.gitignore'), `.env
-node_modules/
-out/
-cache/
-broadcast/
-lib/`);
-  
+  await fs.writeFile(path.join(targetDir, '.gitignore'), `.env
+  node_modules/
+  out/
+  cache/
+  broadcast/
+  lib/`);
+
   // Create README
-  const readme = `# ${projectName}
+  const readme = `# ${nameOnly}
 
-${config.basicInfo.description}
+  ${config.basicInfo.description}
 
-## Features
+  ## Features
 
-${config.selectedFeatures.map(f => `- ${AGENT_FEATURES[f].name}`).join('\n')}
+  ${config.selectedFeatures.map(f => `- ${AGENT_FEATURES[f].name}`).join('\n')}
 
-## Quick Start
+  ## Quick Start
 
-\`\`\`bash
-# Install dependencies
-forge install foundry-rs/forge-std
+  \`\`\`bash
+  # Install dependencies
+  forge install foundry-rs/forge-std
 
-# Run tests
-forge test
+  # Run tests
+  forge test
 
-# Deploy
-forge script script/Deploy.s.sol --rpc-url somnia_testnet --broadcast
-\`\`\`
-`;
-  
-  await fs.writeFile(path.join(projectDir, 'README.md'), readme);
+  # Deploy
+  forge script script/Deploy.s.sol --rpc-url somnia_testnet --broadcast
+  \`\`\`
+  `;
+  await fs.writeFile(path.join(targetDir, 'README.md'), readme);
 }
 
 module.exports = { runWizard, createCustomProject };

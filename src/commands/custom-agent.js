@@ -1,67 +1,30 @@
-// CLI command for generating a custom agent smart contract using AI
 
+// Refactored CLI command for generating a full custom agent project using AI or wizard
 const inquirer = require('inquirer');
-const fs = require('fs-extra');
 const path = require('path');
+const fs = require('fs-extra');
 const { generateWithAI } = require('../../utils/ai');
+const { runWizard, createCustomProject } = require('./wizard');
 
 async function customAgent() {
-  console.log('\nSomnia Custom Agent Generator\n');
+  console.log('\nSomnia Custom Agent Project Generator\n');
 
-  // Step 1: Ask user requirements (with validation)
-  const validatedAnswers = await inquirer.prompt([
+  // Step 1: Ask for project name and creation method
+  const { projectName } = await inquirer.prompt([
     {
       type: 'input',
-      name: 'agentName',
-      message: 'What is the name of your contract?',
+      name: 'projectName',
+      message: 'What is the name of your agent project?',
       default: 'CustomAgent',
       validate: (input) => {
         if (!input || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(input)) {
-          return 'Agent name must be a valid Solidity identifier (letters, numbers, underscores, no spaces, cannot start with a number).';
-        }
-        return true;
-      }
-    },
-    {
-      type: 'list',
-      name: 'agentType',
-      message: 'Select the type of agent:',
-      choices: ['DeFi', 'NFT', 'Yield', 'Basic', 'Other']
-    },
-    {
-      type: 'checkbox',
-      name: 'features',
-      message: 'Select features for your agent:',
-      choices: [
-        { name: 'Staking', value: 'staking' },
-        { name: 'Lending', value: 'lending' },
-        { name: 'Governance', value: 'governance' },
-        { name: 'Custom Events', value: 'events' },
-        { name: 'Access Control', value: 'access' }
-      ],
-      validate: (input) => {
-        if (!input || input.length === 0) {
-          return 'Please select at least one feature.';
-        }
-        return true;
-      }
-    },
-    {
-      type: 'input',
-      name: 'description',
-      message: 'Describe your agent in one sentence:',
-      default: 'A custom agent for the Somnia ecosystem.',
-      validate: (input) => {
-        if (!input || input.length < 10) {
-          return 'Description must be at least 10 characters.';
+          return 'Project name must be a valid Solidity identifier (letters, numbers, underscores, no spaces, cannot start with a number).';
         }
         return true;
       }
     }
   ]);
 
-  // Step 2: Ask if user wants to use AI
-  let contractCode;
   const { useAI } = await inquirer.prompt([
     {
       type: 'confirm',
@@ -71,6 +34,11 @@ async function customAgent() {
     }
   ]);
 
+  // Step 2: Gather features and config using wizard
+  const wizardConfig = await runWizard(projectName);
+
+  // Step 3: Generate contract code (AI or wizard)
+  let contractCode;
   if (useAI) {
     const { openaiApiKey } = await inquirer.prompt([
       {
@@ -81,52 +49,33 @@ async function customAgent() {
       }
     ]);
     try {
-      contractCode = await generateWithAI(validatedAnswers, openaiApiKey);
+      contractCode = await generateWithAI({
+        agentName: projectName,
+        agentType: 'Custom',
+        features: wizardConfig.selectedFeatures,
+        description: wizardConfig.basicInfo.description
+      }, openaiApiKey);
     } catch (e) {
       console.error('\n❌ AI generation failed:', e.message);
       return;
     }
   } else {
-    contractCode = `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// ${validatedAnswers.description}\ncontract ${validatedAnswers.agentName} {\n    // TODO: Implement features: ${validatedAnswers.features.join(', ')}\n}`;
+    // Use wizard to generate contract code
+    contractCode = require('./wizard').generateCustomContract(projectName, wizardConfig);
   }
 
+  // Step 4: Create full project structure inside template/agent-template
+  const targetDir = path.join(process.cwd(), 'templates', 'agent-template', projectName);
+  await createCustomProject(targetDir, wizardConfig);
 
-  // Step 3: Fallback: prepend SPDX if missing
-  if (!/^\s*\/\/ SPDX-License-Identifier:/.test(contractCode)) {
-    contractCode = `// SPDX-License-Identifier: MIT\n` + contractCode;
+  // Overwrite contract file with AI code if needed
+  if (useAI) {
+    const outPath = path.join(targetDir, 'src', `${projectName}.sol`);
+    await fs.ensureDir(path.dirname(outPath));
+    await fs.writeFile(outPath, contractCode);
   }
 
-  // Step 4: Validate generated Solidity code (basic checks)
-  if (!/pragma solidity/.test(contractCode)) {
-    console.error('\n❌ Validation failed: Solidity pragma missing.');
-    return;
-  }
-  const contractNameRegex = new RegExp(`contract\\s+${validatedAnswers.agentName}\\s*{`);
-  if (!contractNameRegex.test(contractCode)) {
-    console.warn(`\n⚠️ Contract name '${validatedAnswers.agentName}' not found in AI output.`);
-    console.log('\nHere is the generated contract code:\n');
-    console.log(contractCode);
-    const { confirmSave } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirmSave',
-        message: `Do you want to save this contract code anyway?`,
-        default: false
-      }
-    ]);
-    if (!confirmSave) {
-      console.log('\n❌ Aborted: Contract not saved.');
-      return;
-    }
-  }
-
-  // Step 4: Save contract to src/
-  const outDir = path.join(process.cwd(), 'src');
-  await fs.ensureDir(outDir);
-  const outPath = path.join(outDir, `${validatedAnswers.agentName}.sol`);
-  await fs.writeFile(outPath, contractCode);
-
-  console.log(`\n✅ Custom agent contract generated at: src/${validatedAnswers.agentName}.sol`);
+  console.log(`\n✅ Custom agent project generated at: templates/agent-template/${projectName}`);
 }
 
 module.exports = customAgent;
