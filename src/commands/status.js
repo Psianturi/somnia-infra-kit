@@ -23,8 +23,8 @@ async function status() {
     console.log(`⚙️  Configuration: ${hasEnv ? '✅ Found' : '❌ Missing'}`);
 
     if (hasEnv) {
-      const hasRpc = process.env.SOMNIA_RPC_URL ? '✅' : '❌';
-      const hasKey = (process.env.PRIVATE_KEY_ENCRYPTED || process.env.PRIVATE_KEY) ? '✅' : '❌';
+  const hasRpc = process.env.SOMNIA_RPC_URL ? '✅' : '❌';
+  const hasKey = process.env.PRIVATE_KEY ? '✅' : '❌';
       console.log(`   RPC URL: ${hasRpc}`);
       console.log(`   Private Key: ${hasKey}`);
     }

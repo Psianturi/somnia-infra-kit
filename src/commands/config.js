@@ -18,14 +18,21 @@ function validatePath(inputPath) {
 }
 
 function encryptPrivateKey(privateKey, password = 'somnia-default') {
-  const cipher = crypto.createCipher('aes192', password);
-  let encrypted = cipher.update(privateKey, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return encrypted;
+  // Use modern Node.js crypto APIs: derive a key with scrypt and use AES-192-CBC
+  // Store as iv:encryptedHex so we can decrypt later.
+  const key = crypto.scryptSync(password, 'somnia-salt', 24); // 24 bytes for aes-192
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-192-cbc', key, iv);
+  const encryptedBuf = Buffer.concat([cipher.update(privateKey, 'utf8'), cipher.final()]);
+  return iv.toString('hex') + ':' + encryptedBuf.toString('hex');
 }
 
-async function config() {
+async function config(options = {}) {
   try {
+    // If a private key is already available in env, use it and skip prompting for the key.
+    const envEncryptedKey = process.env.PRIVATE_KEY_ENCRYPTED;
+    const envPlainKey = process.env.PRIVATE_KEY;
+
     const questions = [
       {
         type: 'input',
@@ -41,7 +48,11 @@ async function config() {
           }
         }
       },
-      {
+    ];
+
+    // Only ask for a private key if none is present in environment
+    if (!envEncryptedKey && !envPlainKey) {
+      questions.push({
         type: 'password',
         name: 'privateKey',
         message: 'Enter your private key:',
@@ -52,10 +63,17 @@ async function config() {
           }
           return true;
         }
-      }
-    ];
+      });
+    } else {
+      if (envEncryptedKey) console.log('Using PRIVATE_KEY_ENCRYPTED from environment');
+      else console.log('Using PRIVATE_KEY from environment');
+    }
 
-    const answers = await inquirer.prompt(questions);
+  const answers = await inquirer.prompt(questions);
+
+  // If a key existed in env, attach it to answers for further processing
+  if (envEncryptedKey) answers.privateKey = envEncryptedKey;
+  if (envPlainKey) answers.privateKey = envPlainKey;
 
     // Validate and secure path
     const envPath = path.resolve(process.cwd(), '.env');
@@ -63,9 +81,19 @@ async function config() {
       throw new Error('Invalid path detected');
     }
 
-    // Encrypt private key
-    const encryptedKey = encryptPrivateKey(answers.privateKey);
-    const envContent = `SOMNIA_RPC_URL=${answers.rpcUrl}\nPRIVATE_KEY_ENCRYPTED=${encryptedKey}\n`;
+    // Use a single global env var `PRIVATE_KEY`.
+    // If answers.privateKey already looks encrypted (iv:hex) keep it. Otherwise, encrypt and store.
+    let storedKey;
+    if (answers.privateKey && typeof answers.privateKey === 'string' && answers.privateKey.includes(':')) {
+      storedKey = answers.privateKey;
+    } else if (answers.privateKey) {
+      storedKey = encryptPrivateKey(answers.privateKey);
+    }
+
+    const envLines = [];
+    envLines.push(`SOMNIA_RPC_URL=${answers.rpcUrl}`);
+    if (storedKey) envLines.push(`PRIVATE_KEY=${storedKey}`);
+    const envContent = envLines.join('\n') + '\n';
 
     fs.writeFileSync(envPath, envContent, { mode: 0o600 });
     console.log('✅ Configuration saved securely to .env file');

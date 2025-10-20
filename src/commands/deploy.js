@@ -15,10 +15,17 @@ require('dotenv').config();
 
 function decryptPrivateKey(encryptedKey, password = 'somnia-default') {
   try {
-    const decipher = crypto.createDecipher('aes192', password);
-    let decrypted = decipher.update(encryptedKey, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    // Expect format iv:encryptedHex. If not in that format, return as-is (assume plaintext)
+    if (typeof encryptedKey !== 'string' || !encryptedKey.includes(':')) {
+      return encryptedKey;
+    }
+    const [ivHex, encryptedHex] = encryptedKey.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const encryptedBuf = Buffer.from(encryptedHex, 'hex');
+    const key = crypto.scryptSync(password, 'somnia-salt', 24); // 24 bytes for aes-192
+    const decipher = crypto.createDecipheriv('aes-192-cbc', key, iv);
+    const decryptedBuf = Buffer.concat([decipher.update(encryptedBuf), decipher.final()]);
+    return decryptedBuf.toString('utf8');
   } catch {
     return encryptedKey; // Fallback for unencrypted keys
   }
@@ -75,8 +82,8 @@ async function deploy(options = {}) {
     }
 
     // Check for required environment variables
-    const rpcUrl = process.env.SOMNIA_RPC_URL;
-    const encryptedKey = process.env.PRIVATE_KEY_ENCRYPTED || process.env.PRIVATE_KEY;
+  const rpcUrl = process.env.SOMNIA_RPC_URL;
+  const encryptedKey = process.env.PRIVATE_KEY;
 
     if (!rpcUrl || !encryptedKey) {
       console.error(chalk.red('❌ Missing required environment variables. Please run somnia-cli config.'));

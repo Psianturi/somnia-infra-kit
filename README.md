@@ -136,6 +136,7 @@ somnia-cli status
 | `status` | Check project health | `somnia-cli status` |
 | `--help` | Show help | `somnia-cli --help` |
 
+
 ## 📁 Generated Project Structure
 
 **Basic Agent Project:**
@@ -177,31 +178,6 @@ somnia-cli init NFTBot --template nft && cd NFTBot
 somnia-cli config && somnia-cli test && somnia-cli deploy
 ```
 
-## Troubleshooting
-
-### Common Issues
-
-**1. "forge not found":**
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-**2. "Configuration missing":**
-```bash
-somnia-cli config
-```
-
-**3. Tests failing:**
-```bash
-somnia-cli status
-cd YourProjectName && somnia-cli test
-```
-
-**4. Deployment fails:**
-```bash
-somnia-cli status && cat .env
-```
 
 ## Testing Results
 
@@ -228,7 +204,7 @@ somnia-cli status && cat .env
 
 ## Requirements
 
-- Node.js >= 18.0.0
+- Node.js >= 20.0.0
 - Git (for dependency management)
 - Foundry (automatically detected)
 - Somnia Testnet access with STT tokens
@@ -245,11 +221,6 @@ somnia-cli status && cat .env
 
 ## Contributing
 
-Contributions are welcome! Technical documentation will be available soon.
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
+Contributions are welcome!
 ---
 
