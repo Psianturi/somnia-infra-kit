@@ -155,17 +155,6 @@ MyAgent/
 └── README.md                # Project documentation
 ```
 
-**DeFi Agent Project:**
-```
-MyDeFiAgent/
-├── src/
-│   ├── AgentContract.sol    # Basic agent
-│   └── DeFiAgent.sol        # Advanced DeFi agent
-├── test/
-│   ├── Agent.t.sol          # Basic tests (4 tests)
-│   └── DeFiAgent.t.sol      # DeFi tests (6 tests)
-└── ... (same structure as above)
-```
 
 ## Development Workflows
 
