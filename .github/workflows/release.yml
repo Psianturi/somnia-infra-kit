@@ -139,6 +139,31 @@ jobs:
           echo "⚠️ Tag v${{ needs.check-version.outputs.new-version }} already exists"
           echo "Skipping release creation, proceeding with NPM publish check"
 
+      - name: Ensure GitHub Release exists for tag
+        if: steps.should-proceed.outputs.proceed == 'true' && steps.create-tag.outputs.tag-exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: v${{ needs.check-version.outputs.new-version }}
+        run: |
+          echo "Checking for existing GitHub Release for $TAG..."
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/releases/tags/$TAG")
+          if [ "$status" = "200" ]; then
+            echo "Release for $TAG already exists (HTTP $status)."
+          else
+            echo "No release found for $TAG (HTTP $status). Creating release..."
+            # Build minimal JSON payload without jq
+            PAYLOAD=$(printf '{"tag_name":"%s","name":"%s","body":"%s","draft":false,"prerelease":false}' "$TAG" "Release $TAG" "Automated release for $TAG")
+            resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/$REPO/releases -d "$PAYLOAD")
+            echo "Create release response HTTP status: $resp"
+            if [ "$resp" -ge 200 ] && [ "$resp" -lt 300 ]; then
+              echo "Created release for $TAG"
+            else
+              echo "Failed to create release for $TAG (HTTP $resp)"
+              exit 1
+            fi
+          fi
+
       - name: Check if version already published
         if: steps.should-proceed.outputs.proceed == 'true'
         id: check-npm
