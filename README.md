@@ -423,6 +423,22 @@ cat .env
 - **Foundry** (automatically detected and used)
 - **Somnia Testnet** access with STT tokens
 
+## 🌐 Ecosystem
+
+### [Somnia InfraKit Website](https://somnia-infrakit.vercel.app)
+Official website featuring:
+- Interactive landing page
+- Complete documentation
+- Getting started guides
+- Architecture overview
+
+### [Live Demo Projects](https://github.com/Psianturi/somnia-agents-showcase)
+Real-world examples of deployed AI agents:
+- **DemoBasicAgent**: `0x0ae8b1BF59127693819567f6Fb2EB47Fb7C3BAd4` (Somnia Testnet)
+- **DemoDeFiAgent**: `0x5FbDB2315678afecb367f032d93F642f64180aa3` (Local deployment)
+- **DemoInteractiveAgent**: Interactive template showcase
+- **DemoWizardAgent**: Custom agent with wizard
+
 ## 🤝 Contributing
 
 Contributions are welcome! Technical documentation will be available soon.
