@@ -10,238 +10,114 @@ A comprehensive CLI tool for developing and deploying Autonomous AI Agents on th
 
 - **Instant Setup**: Bootstrap complete AI Agent projects in seconds
 - **Interactive Templates**: Smart template selection with feature preview
-- **Customization Wizard**: Personalized agent creation with guided setup
-- **Testing**: Comprehensive test suite with Foundry integration
-- **Secure Deployment**: Encrypted credential management and auto-verification
-- **Project Upgrades**: Keep dependencies and templates up-to-date
-- **Built-in Debugging**: Gas analysis, transaction tracing, and security checks
-- **VS Code Integration**: Syntax highlighting and code snippets
+- **AI-Powered Custom Agents**: Generate smart contracts using OpenAI GPT integration
 - **Multiple Templates**: Specialized templates for DeFi, NFT, and basic agents
-- **Fast setup**: Fast project setup and template selection (DeFi, NFT, Yield, Basic, Custom)
-- **Custom agent** : Other Agent creation (wizard or AI-powered)
-- **Built-in test**: deploy, verify, debug, and upgrade commands
+- **Built-in Testing**: Comprehensive test suite with Foundry integration
+- **Secure Deployment**: Encrypted credential management and auto-verification
+- **VS Code Integration**: Syntax highlighting and code snippets
 
 
 ## Installation
 
 ```bash
-# Install latest version
-npm install -g somnia-ai-agent-cli
-
-# Or install specific version
 npm install -g somnia-ai-agent-cli@1.0.5
 ```
 
 **Verify installation:**
 ```bash
 somnia-cli --version
-# Expected output: 1.0.5 (or latest version)
+# Expected: 1.0.5
 
 somnia-cli --help
-# Shows all available commands
 ```
 
-**Latest Version:** [v1.0.5](https://www.npmjs.com/package/somnia-ai-agent-cli) - Template path fixes and deployment improvements
+## Quick Start Guide
 
-
-
-**Upgrade from older versions:**
+### 1. Create Agent Project
 ```bash
-# Uninstall old version
-npm uninstall -g somnia-ai-agent-cli
-
-# Install latest version
-npm install -g somnia-ai-agent-cli@latest
-
-# Verify upgrade
-somnia-cli --version
-```
-
-## 🎯 Quick Start Guide
-
-### Step 1: Create Your First Agent
-```bash
-# Interactive template selection
 somnia-cli init MyFirstAgent
-# Shows menu: Basic Agent, DeFi Agent, NFT Agent
-# Select template and see feature preview
-
-# Or use specific template directly
-somnia-cli init MyFirstAgent --template basic
-
-# Or use customization wizard
-somnia-cli init MyFirstAgent --wizard
-
 cd MyFirstAgent
-
-# Check what was created
-ls -la
-# Output: src/ test/ script/ foundry.toml .env.example README.md
 ```
 
-### Step 2: Configure Environment
+### 2. Configure Environment
 ```bash
-# Interactive configuration setup
 somnia-cli config
+# Prompts: RPC URL, Private Key (encrypted)
 ```
-**You'll be prompted for:**
-- Somnia RPC URL (default: `https://dream-rpc.somnia.network`)
-- Private Key (encrypted and stored securely)
 
-### Step 3: Test Your Agent
+### 3. Test the Agent
 ```bash
-# Run comprehensive test suite
 somnia-cli test
-```
-**Expected output:**
-```
-🧪 Running tests...
-[PASS] test_TriggerActionUpdatesTimestamp
-[PASS] test_TriggerActionUpdatesData  
-[PASS] test_OnlyOwnerCanTriggerAction
-[PASS] test_GetAgentStatus
-✅ Tests completed successfully!
+# Expected: All tests pass
 ```
 
-### Step 4: Deploy to Somnia Testnet
+### 4. Deploy to Somnia Testnet
 ```bash
-# Deploy your agent contract
 somnia-cli deploy
-```
-**Expected output:**
-```
-🚀 Deploying AI Agent contract to Somnia Testnet...
-📋 Using wallet: 0x53...6586
-✅ Deployment completed successfully!
-Contract deployed at: 0x1234...5678
+# Expected: Contract deployed successfully
 ```
 
-### Step 5: Verify Contract (Optional)
+### 5. Verify Contract (Optional)
 ```bash
-# Verify your deployed contract
-somnia-cli verify 0x1234...5678
+somnia-cli verify <contract-address>
 ```
 
-## 🚀 Advanced Features
+## Advanced Features
 
-### 🎯 Interactive Template Selection
+### Interactive Template Selection
 ```bash
-# No template specified - shows interactive menu
 somnia-cli init MyAgent
-# Displays:
-# ? Select template type:
-#   > Basic Agent - Simple autonomous agent
-#     DeFi Agent - Price monitoring & trading signals
-#     NFT Agent - Floor price tracking & opportunities
+# Shows menu: Basic Agent, DeFi Agent, NFT Agent
 ```
 
-### 🧿 Customization Wizard
+### Customization Wizard
 ```bash
-# Create personalized agent with wizard
 somnia-cli init MyCustomAgent --wizard
-# Guided setup:
-# - Agent description and symbol
-# - Feature selection (price monitoring, trading, governance)
-# - Configuration parameters
-# - Generates custom smart contract
+# Guided setup with feature selection
 ```
 
-### ⬆️ Project Upgrades
+### Project Upgrades
 ```bash
-# Keep your project up-to-date
 somnia-cli upgrade
-# Updates:
-# - CLI templates to latest version
-# - Foundry dependencies
-# - Security patches
-# - New features and improvements
+# Updates templates and dependencies
 ```
 
-### 🐛 Built-in Debugging Tools
+### Built-in Debugging
 ```bash
-# Interactive debugging tools
 somnia-cli debug
-# Options:
-# - Gas Analysis - Optimize gas usage
-# - Transaction Trace - Step through execution
-# - Event Analysis - Analyze emitted events
-# - Security Check - Find security issues
+# Gas analysis, transaction tracing, security checks
 ```
 
-## 🛠️ Advanced Usage
+## Available Templates
 
-### Available Templates
-
-#### 1. Basic Agent Template
+### 1. Basic Agent
 ```bash
 somnia-cli init MyBasicAgent
-# Creates: Basic autonomous agent with trigger functionality
+# Simple autonomous agent (4 tests)
 ```
 
-#### 2. DeFi Price Monitoring Agent
+### 2. DeFi Agent
 ```bash
 somnia-cli init MyDeFiAgent --template defi
-# Creates: Advanced DeFi agent with price thresholds and trading signals
+# Price monitoring & trading signals (10 tests)
 ```
 
-#### 3. NFT Trading Agent
+### 3. NFT Agent
 ```bash
 somnia-cli init MyNFTAgent --template nft
-# Creates: NFT floor price monitoring and trading opportunity detection
+# Floor price tracking & opportunities
 ```
 
-### Testing Different Templates
-
-**Test Basic Agent:**
+### 4. Custom AI Agent
 ```bash
-cd MyBasicAgent
-somnia-cli test
-# Runs 4 tests: timestamp, data, access control, status
+somnia-cli custom-agent
+# AI-powered contract generation with OpenAI integration
 ```
 
-**Test DeFi Agent:**
+### Project Status Check
 ```bash
-cd MyDeFiAgent
-somnia-cli test
-# Runs 10 tests: price updates, thresholds, signals, access control
-```
-
-**Test NFT Agent:**
-```bash
-cd MyNFTAgent
-somnia-cli test
-# Runs NFT-specific tests: floor price tracking, collection management
-```
-
-### Project Health Monitoring
-
-```bash
-# Check project status and configuration
 somnia-cli status
-```
-
-**Sample output:**
-```
-🔍 Somnia Agent Project Status
-📁 Project Directory: ✅ Valid
-⚙️  Configuration: ✅ Found
-🔨 Foundry: ✅ Installed
-📂 Project Structure:
-   src/: ✅
-   test/: ✅
-   script/: ✅
-```
-
-**Example CLI:**
-```bash
-$ somnia-cli custom-agent
-Somnia Custom Agent Project Generator
-? What is the name of your agent project? MyAgent
-? Do you want to use AI to generate the contract code? Yes
-? Enter your OpenAI API key: ********
-... (wizard prompts for features, description, etc) ...
-
-✅ Custom agent project generated at: templates/agent-template/MyAgent
+# Validates project structure and configuration
 ```
 
 ### Command Reference
@@ -291,155 +167,94 @@ MyDeFiAgent/
 └── ... (same structure as above)
 ```
 
-## 🔄 Complete Development Workflow
+## Development Workflows
 
-### For Beginners (Basic Agent)
-
+### Basic Agent (Beginners)
 ```bash
-# 1. Install CLI
 npm install -g somnia-ai-agent-cli
-
-# 2. Create project
-somnia-cli init MyFirstAgent
-cd MyFirstAgent
-
-# 3. Configure (interactive prompts)
-somnia-cli config
-
-# 4. Test (should pass 4 tests)
-somnia-cli test
-
-# 5. Deploy
-somnia-cli deploy
-
-# 6. Verify (optional)
-somnia-cli verify <your-contract-address>
+somnia-cli init MyFirstAgent && cd MyFirstAgent
+somnia-cli config && somnia-cli test && somnia-cli deploy
 ```
 
-### For DeFi Developers (Advanced)
-
+### DeFi Agent (Advanced)
 ```bash
-# 1. Create DeFi agent
-somnia-cli init PriceBot --template defi
-cd PriceBot
-
-# 2. Configure environment
-somnia-cli config
-
-# 3. Test DeFi functionality (10 tests)
-somnia-cli test
-# Expected: All tests pass including price thresholds
-
-# 4. Customize DeFi logic (optional)
-# Edit src/DeFiAgent.sol for your specific needs
-
-# 5. Re-test after changes
-somnia-cli test
-
-# 6. Deploy to testnet
-somnia-cli deploy
-
-# 7. Monitor deployment
-somnia-cli status
+somnia-cli init PriceBot --template defi && cd PriceBot
+somnia-cli config && somnia-cli test && somnia-cli deploy
 ```
 
-### For NFT Developers
-
+### NFT Agent
 ```bash
-# 1. Create NFT trading agent
-somnia-cli init NFTBot --template nft
-cd NFTBot
-
-# 2. Follow same workflow as above
-somnia-cli config
-somnia-cli test
-somnia-cli deploy
+somnia-cli init NFTBot --template nft && cd NFTBot
+somnia-cli config && somnia-cli test && somnia-cli deploy
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-**1. "forge not found" error:**
+**1. "forge not found":**
 ```bash
-# Install Foundry
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
-**2. "Configuration missing" error:**
+**2. "Configuration missing":**
 ```bash
-# Run config command
 somnia-cli config
 ```
 
 **3. Tests failing:**
 ```bash
-# Check project status
 somnia-cli status
-
-# Ensure you're in project directory
-cd YourProjectName
-somnia-cli test
+cd YourProjectName && somnia-cli test
 ```
 
 **4. Deployment fails:**
 ```bash
-# Verify configuration
-somnia-cli status
-
-# Check if RPC URL and private key are set
-cat .env
+somnia-cli status && cat .env
 ```
 
-## 📊 Testing Results
+## Testing Results
 
-**Basic Agent Tests:**
-- ✅ `test_TriggerActionUpdatesTimestamp` - Validates action timing
-- ✅ `test_TriggerActionUpdatesData` - Validates data storage  
-- ✅ `test_OnlyOwnerCanTriggerAction` - Security validation
-- ✅ `test_GetAgentStatus` - Status retrieval
+**Basic Agent Tests (4 tests):**
+- `test_TriggerActionUpdatesTimestamp` - Action timing validation
+- `test_TriggerActionUpdatesData` - Data storage validation
+- `test_OnlyOwnerCanTriggerAction` - Security validation
+- `test_GetAgentStatus` - Status retrieval
 
-**DeFi Agent Tests (Additional):**
-- ✅ `test_InitialState` - Contract initialization
-- ✅ `test_UpdatePrice` - Price update functionality
-- ✅ `test_PriceThresholdTrigger` - Buy signal generation
-- ✅ `test_SellSignalTrigger` - Sell signal generation
-- ✅ `test_OnlyOwnerCanUpdate` - Access control
-- ✅ `test_ToggleAgent` - Agent activation/deactivation
+**DeFi Agent Tests (6 additional tests):**
+- `test_InitialState` - Contract initialization
+- `test_UpdatePrice` - Price update functionality
+- `test_PriceThresholdTrigger` - Buy signal generation
+- `test_SellSignalTrigger` - Sell signal generation
+- `test_OnlyOwnerCanUpdate` - Access control
+- `test_ToggleAgent` - Agent activation/deactivation
 
-## 🌐 Network Configuration
+## Network Configuration
 
 **Somnia Testnet:**
 - RPC URL: `https://dream-rpc.somnia.network`
 - Chain ID: 50312
 - Currency: STT
-- Block Explorer: Available through Somnia network
 
-## 📋 Requirements
+## Requirements
 
-- **Node.js** >= 18.0.0 (recommended: >= 20.0.0)
-- **Git** (for dependency management)
-- **Foundry** (automatically detected and used)
-- **Somnia Testnet** access with STT tokens
+- Node.js >= 18.0.0
+- Git (for dependency management)
+- Foundry (automatically detected)
+- Somnia Testnet access with STT tokens
 
-## 🌐 Ecosystem
+## Ecosystem
 
 ### [Somnia InfraKit Website](https://somnia-infrakit.vercel.app)
-Official website featuring:
-- Interactive landing page
-- Complete documentation
-- Getting started guides
-- Architecture overview
+- Interactive landing page and documentation
+- Getting started guides and architecture overview
 
 ### [Live Demo Projects](https://github.com/Psianturi/somnia-agents-showcase)
-Real-world examples of deployed AI agents:
 - **DemoBasicAgent**: `0x0ae8b1BF59127693819567f6Fb2EB47Fb7C3BAd4` (Somnia Testnet)
 - **DemoDeFiAgent**: `0x5FbDB2315678afecb367f032d93F642f64180aa3` (Local deployment)
-- **DemoInteractiveAgent**: Interactive template showcase
-- **DemoWizardAgent**: Custom agent with wizard
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Technical documentation will be available soon.
 
