@@ -1,6 +1,6 @@
 {
   "name": "somnia-ai-agent-cli",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Somnia Infra Kit - CLI tool for developing and deploying Autonomous AI Agents on Somnia Blockchain",
   "main": "index.js",
   "type": "commonjs",
