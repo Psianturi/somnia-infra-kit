@@ -1,40 +1,34 @@
-// SPDX-License-Identifier: MIT// SPDX-License-Identifier: MIT
+    event Withdrawn(address indexed to, uint256 amount);
 
-pragma solidity ^0.8.20;pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-
-
-import "forge-std/Script.sol";contract AgentContract {
-
-import "openzeppelin-contracts/contracts/access/Ownable.sol";    // Example: Yield agent stores funds and allows withdrawal
-
-    address public owner;
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract AgentContract is Ownable {
+    uint256 public yield;
 
-    // Example state variable    constructor() {
+    constructor(address initialOwner) Ownable(initialOwner) {}
 
-    uint256 public yield;        owner = msg.sender;
+    // Deposit ETH to contract
+    receive() external payable {}
 
+    // Set yield value
+    function setYield(uint256 _yield) external onlyOwner {
+        require(_yield > 0, "Yield must be positive");
+        yield = _yield;
     }
 
-    // Example function to set yield
-
-    function setYield(uint256 _yield) external onlyOwner {    // Deposit ETH to contract
-
-        yield = _yield;    receive() external payable {}
-
+    // Get yield value
+    function getYield() external view returns (uint256) {
+        return yield;
     }
 
     // Withdraw all ETH to owner
-
-    // Example function to get yield    function withdraw() external {
-
-    function getYield() external view returns (uint256) {        require(msg.sender == owner, "Not owner");
-
-        return yield;        payable(owner).transfer(address(this).balance);
-
-    }    }
-
-}}
+    function withdraw() external onlyOwner {
+        uint256 bal = address(this).balance;
+        payable(owner()).transfer(bal);
+        emit Withdrawn(owner(), bal);
+    }
+}
 
