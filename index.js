@@ -28,6 +28,20 @@ program
     init(projectName, options.template, options.wizard);
   });
 
+// Alias: createAgent -> behaves like init
+program
+  .command('createAgent <projectName>')
+  .description('Create a new agent project (alias for init)')
+  .option('-t, --template <type>', 'Template type (basic, defi, nft)')
+  .option('-w, --wizard', 'Use customization wizard')
+  .action((projectName, options) => {
+    const init = require('./src/commands/init');
+    init(projectName, options.template, options.wizard);
+  });
+
+// Alias: install -> behaves like init (convenience for new users)
+// (removed redundant `install` alias per user request)
+
 program
   .command('config')
   .description('Setup project configuration')
@@ -96,6 +110,16 @@ program
   .action(() => {
     const customAgent = require('./src/commands/custom-agent');
     customAgent();
+  });
+
+program
+  .command('create [projectName]')
+  .description('Complete guided experience for creating AI agents (recommended for beginners)')
+  .option('-m, --method <method>', 'Creation method: ai|wizard|template')
+  .option('--use-ai', 'Force AI-powered creation (non-interactive)')
+  .action((projectName, options) => {
+    const create = require('./src/commands/create');
+    create(projectName, { method: options.method, useAI: options.useAi || options.useAI });
   });
 
 // Handle unknown commands

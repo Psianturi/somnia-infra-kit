@@ -6,35 +6,43 @@ const fs = require('fs-extra');
 const { generateWithAI } = require('../../utils/ai');
 const { runWizard, createCustomProject } = require('./wizard');
 
-async function customAgent() {
+async function customAgent(projectName = null, opts = {}) {
   console.log('\nSomnia Custom Agent Project Generator\n');
 
-  // Step 1: Ask for project name and creation method
-  const { projectName } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'projectName',
-      message: 'What is the name of your agent project?',
-      default: 'CustomAgent',
-      validate: (input) => {
-        if (!input || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(input)) {
-          return 'Project name must be a valid Solidity identifier (letters, numbers, underscores, no spaces, cannot start with a number).';
+  // Step 1: Ask for project name if not provided by caller
+  if (!projectName) {
+    const resp = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'projectName',
+        message: 'What is the name of your agent project?',
+        default: 'CustomAgent',
+        validate: (input) => {
+          if (!input || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(input)) {
+            return 'Project name must be a valid Solidity identifier (letters, numbers, underscores, no spaces, cannot start with a number).';
+          }
+          return true;
         }
-        return true;
       }
-    }
-  ]);
+    ]);
+    projectName = resp.projectName;
+  }
 
-  const { useAI } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'useAI',
-      message: 'Do you want to use AI to generate the contract code?',
-      default: true
-    }
-  ]);
+  // Step 2: Determine whether to use AI
+  let useAI = opts.forceAI === true;
+  if (typeof useAI !== 'boolean' || useAI === false) {
+    const { useAI: reply } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'useAI',
+        message: 'Do you want to use AI to generate the contract code?',
+        default: true
+      }
+    ]);
+    useAI = reply;
+  }
 
-  // Step 2: Gather features and config using wizard
+  // Step 3: Gather features and config using wizard
   const wizardConfig = await runWizard(projectName);
 
   // Step 3: Generate contract code (AI or wizard)

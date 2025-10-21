@@ -51,6 +51,13 @@ async function selectTemplate() {
     short: template.name
   }));
 
+  // Add an "Other / Custom" option to route to the custom agent flow
+  templateChoices.push({
+    name: `${chalk.bold('Other')} - Create a custom agent (wizard or AI)`,
+    value: 'other',
+    short: 'Other'
+  });
+
   const { selectedTemplate } = await inquirer.prompt([
     {
       type: 'list',
@@ -60,6 +67,13 @@ async function selectTemplate() {
       pageSize: 10
     }
   ]);
+
+  // If user chose Other, don't attempt to show template features
+  if (selectedTemplate === 'other') {
+    console.log(chalk.green(`\n✅ Selected: Other (custom)`));
+    console.log('');
+    return selectedTemplate;
+  }
 
   // Show selected template features
   const template = TEMPLATES[selectedTemplate];
@@ -114,6 +128,14 @@ async function init(projectName, templateType = null, useWizard = false) {
       }
     };
     
+    // If user selected Other, route into the custom-agent flow
+    if (templateType === 'other') {
+      const customAgent = require('./custom-agent');
+      // customAgent will prompt for project name and options itself
+      await customAgent();
+      return;
+    }
+
     // Get template configuration
     const template = TEMPLATES[templateType] || TEMPLATES.basic;
     const templateDir = getTemplatePath(template.path);

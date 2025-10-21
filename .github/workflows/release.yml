@@ -185,6 +185,34 @@ jobs:
           npm publish --access public
           echo "✅ Successfully published v${{ needs.check-version.outputs.new-version }} to NPM"
 
+      - name: Validate npm publish
+        if: steps.should-proceed.outputs.proceed == 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Checking npm for somnia-ai-agent-cli@$VERSION..."
+          if npm view somnia-ai-agent-cli@$VERSION version >/dev/null 2>&1; then
+            echo "npm has version $VERSION"
+          else
+            echo "ERROR: npm does not show version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Validate GitHub Release exists
+        if: steps.should-proceed.outputs.proceed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: v${{ needs.check-version.outputs.new-version }}
+        run: |
+          echo "Checking GitHub Release for $TAG..."
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/releases/tags/$TAG")
+          if [ "$status" = "200" ]; then
+            echo "GitHub Release for $TAG exists (HTTP $status)."
+          else
+            echo "ERROR: GitHub Release for $TAG not found (HTTP $status)." >&2
+            exit 1
+          fi
+
       - name: Update README badge
         if: steps.should-proceed.outputs.proceed == 'true'
         run: |

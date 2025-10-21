@@ -1,6 +1,6 @@
 {
   "name": "somnia-ai-agent-cli",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Somnia Infra Kit - CLI tool for developing and deploying Autonomous AI Agents on Somnia Blockchain",
   "main": "index.js",
   "type": "commonjs",
@@ -25,9 +25,10 @@
   },
   "files": [
     "index.js",
-    "commands/",
+    "src/",
     "agent-template/",
     "templates/",
+    "utils/",
     "README.md",
     "LICENSE"
   ],
@@ -39,8 +40,7 @@
     "execa": "^5.1.1",
     "fs-extra": "^11.3.2",
     "inquirer": "^8.2.7",
-    "ora": "^5.4.1",
-    "somnia-ai-agent-cli": "^1.0.5"
+    "ora": "^5.4.1"
   },
   "devDependencies": {
     "eslint": "^8.57.1"

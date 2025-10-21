@@ -383,4 +383,4 @@ async function createCustomProject(projectName, config) {
   await fs.writeFile(path.join(targetDir, 'README.md'), readme);
 }
 
-module.exports = { runWizard, createCustomProject };
+module.exports = { runWizard, createCustomProject, generateCustomContract };
