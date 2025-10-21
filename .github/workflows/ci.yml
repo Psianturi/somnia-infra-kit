@@ -59,6 +59,24 @@ jobs:
           fi
         continue-on-error: true
 
+      # Run setup.sh in all agent templates to ensure dependencies are installed
+      - name: Setup agent-template
+        run: |
+          cd agent-template && bash setup.sh
+        continue-on-error: true
+      - name: Setup defi-agent
+        run: |
+          cd templates/defi-agent && bash setup.sh
+        continue-on-error: true
+      - name: Setup nft-agent
+        run: |
+          cd templates/nft-agent && bash setup.sh
+        continue-on-error: true
+      - name: Setup yield-agent
+        run: |
+          cd templates/yield-agent && bash setup.sh
+        continue-on-error: true
+
       - name: Install Forge Dependencies
         run: |
           if command -v forge &> /dev/null; then
