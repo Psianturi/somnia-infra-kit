@@ -34,7 +34,20 @@ jobs:
         id: check-version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if npm view somnia-ai-agent-cli@$VERSION version 2>/dev/null; then
+          # Retry npm view a few times to account for registry replication delays
+          attempts=0
+          max_attempts=5
+          published=false
+          while [ $attempts -lt $max_attempts ]; do
+            if npm view somnia-ai-agent-cli@$VERSION version >/dev/null 2>&1; then
+              published=true
+              break
+            fi
+            attempts=$((attempts+1))
+            sleep $((attempts * 2))
+          done
+
+          if [ "$published" = true ]; then
             echo "Version $VERSION already published"
             echo "should-publish=false" >> $GITHUB_OUTPUT
           else

@@ -63,6 +63,9 @@ jobs:
       - name: Checkout repository
         if: steps.should-proceed.outputs.proceed == 'true'
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup Node.js
         if: steps.should-proceed.outputs.proceed == 'true'
@@ -169,7 +172,20 @@ jobs:
         id: check-npm
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if npm view somnia-ai-agent-cli@$VERSION version 2>/dev/null; then
+          # Retry npm view several times to handle npm registry propagation delay
+          attempts=0
+          max_attempts=6
+          found=false
+          while [ $attempts -lt $max_attempts ]; do
+            if npm view somnia-ai-agent-cli@$VERSION version >/dev/null 2>&1; then
+              found=true
+              break
+            fi
+            attempts=$((attempts+1))
+            sleep $((attempts * 2))
+          done
+
+          if [ "$found" = true ]; then
             echo "Version $VERSION already published to NPM"
             echo "should-publish=false" >> $GITHUB_OUTPUT
           else

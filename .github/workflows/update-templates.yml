@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -35,6 +36,7 @@ jobs:
       - name: Commit & create PR if changed
         uses: peter-evans/create-pull-request@v5
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore: update agent templates from upstream'
           title: 'Update agent templates'
           body: 'Auto-update agent templates from upstream repo.'
