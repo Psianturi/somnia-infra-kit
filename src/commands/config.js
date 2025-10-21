@@ -27,7 +27,7 @@ function encryptPrivateKey(privateKey, password = 'somnia-default') {
   return iv.toString('hex') + ':' + encryptedBuf.toString('hex');
 }
 
-async function config(options = {}) {
+async function config() {
   try {
     // If a private key is already available in env, use it and skip prompting for the key.
     const envEncryptedKey = process.env.PRIVATE_KEY_ENCRYPTED;
@@ -47,7 +47,7 @@ async function config(options = {}) {
             return 'Please enter a valid URL';
           }
         }
-      },
+      }
     ];
 
     // Only ask for a private key if none is present in environment

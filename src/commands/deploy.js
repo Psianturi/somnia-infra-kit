@@ -103,7 +103,7 @@ async function deploy(options = {}) {
     // --- .env auto-validation and correction for PRIVATE_KEY ---
     const envPath = path.resolve(process.cwd(), '.env');
     if (fs.existsSync(envPath)) {
-      let envContent = fs.readFileSync(envPath, 'utf8');
+      const envContent = fs.readFileSync(envPath, 'utf8');
       let lines = envContent.split(/\r?\n/);
       let changed = false;
       lines = lines.map(line => {
@@ -160,6 +160,7 @@ async function deploy(options = {}) {
     console.log(chalk.gray(`📋 Using wallet: ${walletAddress}`));
 
     let forgeResult = { stdout: '', stderr: '' };
+    const forgePath = 'forge';
     try {
       forgeResult = await execa(forgePath, [
         'script',

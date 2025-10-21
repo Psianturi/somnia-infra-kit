@@ -37,6 +37,27 @@ async function create(projectName = null, opts = {}) {
       ]);
       method = resp.method;
     }
+  let customAgent;
+  let config;
+    switch (method) {
+      case 'ai':
+        console.log(chalk.cyan('\n🤖 AI-Powered Agent Creation\n'));
+        customAgent = require('./custom-agent');
+        // pass projectName so customAgent won't prompt for it again
+        await customAgent(projectName, { forceAI: true });
+        break;
+
+      case 'wizard':
+        console.log(chalk.cyan('\n⚙️ Interactive Feature Selection\n'));
+        config = await runWizard(projectName);
+        await createCustomProject(projectName, config);
+        break;
+
+      case 'template':
+        console.log(chalk.cyan('\n📋 Template Selection\n'));
+        await init(projectName, null, false);
+        break;
+    }
 
     // Step 2: Get project name
     if (!projectName) {
@@ -58,25 +79,7 @@ async function create(projectName = null, opts = {}) {
     }
 
     // Step 3: Route to appropriate creation method
-    switch (method) {
-      case 'ai':
-        console.log(chalk.cyan('\n🤖 AI-Powered Agent Creation\n'));
-        const customAgent = require('./custom-agent');
-        // pass projectName so customAgent won't prompt for it again
-        await customAgent(projectName, { forceAI: true });
-        break;
-
-      case 'wizard':
-        console.log(chalk.cyan('\n⚙️ Interactive Feature Selection\n'));
-        const config = await runWizard(projectName);
-        await createCustomProject(projectName, config);
-        break;
-
-      case 'template':
-        console.log(chalk.cyan('\n📋 Template Selection\n'));
-        await init(projectName, null, false);
-        break;
-    }
+    // (already handled above, remove duplicate)
 
     // Step 4: Offer next steps
     console.log(chalk.green('\n✅ Agent creation completed!'));
