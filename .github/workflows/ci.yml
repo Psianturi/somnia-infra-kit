@@ -37,7 +37,7 @@ jobs:
       - name: Audit npm dependencies
         run: |
           # Try audit with timeout to prevent hanging
-          if timeout 40 npm audit --audit-level=moderate; then
+          if timeout 45 npm audit --audit-level=moderate; then
             echo "✅ No vulnerabilities found"
           else
             echo "⚠️ Audit service unavailable or vulnerabilities found, but continuing..."

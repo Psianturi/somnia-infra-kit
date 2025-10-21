@@ -1,7 +1,7 @@
-    event Withdrawn(address indexed to, uint256 amount);
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
+
+event Withdrawn(address indexed to, uint256 amount);
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
