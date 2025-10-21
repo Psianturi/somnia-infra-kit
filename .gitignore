@@ -65,3 +65,7 @@ Test*/
 # Temporary files
 *.tmp
 *.temp
+
+# Ignore Foundry/Forge dependencies in all agent templates
+**/lib/forge-std/
+**/lib/openzeppelin-contracts/

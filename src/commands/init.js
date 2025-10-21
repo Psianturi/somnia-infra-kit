@@ -39,6 +39,12 @@ const TEMPLATES = {
     description: 'Floor price tracking & opportunities',
     path: path.join('templates', 'nft-agent'),
     features: ['Floor price tracking', 'Collection monitoring', 'Opportunity detection']
+  },
+  yield: {
+    name: 'Yield Agent',
+    description: 'Yield farming & auto-compound strategies',
+    path: path.join('templates', 'yield-agent'),
+    features: ['Yield farming', 'Auto-compound', 'Strategy automation', 'Reward tracking']
   }
 };
 

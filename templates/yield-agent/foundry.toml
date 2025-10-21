@@ -1,0 +1,10 @@
+[profile.default][profile.default]
+
+solc_version = '0.8.20'src = 'src'
+
+optimizer = trueout = 'out'
+
+optimizer_runs = 200libs = ['lib']
+
+# Use Solidity 0.8.20 for OpenZeppelin v5.x compatibility
+solc_version = '0.8.20'
