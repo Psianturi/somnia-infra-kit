@@ -14,7 +14,7 @@ echo "[SETUP] Installing OpenZeppelin contracts..."
 forge install OpenZeppelin/openzeppelin-contracts
 
 # Check for critical files
-if [ ! -f lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol ]; then
+if [ ! -f lib/openzeppelin-contracts/contracts/access/Ownable.sol ]; then
   echo "[ERROR] OpenZeppelin contracts not installed correctly. Please check your internet connection and rerun this script." >&2
   exit 1
 fi

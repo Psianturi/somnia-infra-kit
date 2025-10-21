@@ -5,8 +5,11 @@ import "forge-std/Test.sol";
 import "../src/DeFiAgent.sol";
 
 contract DeFiAgentTest is Test {
+
     DeFiAgent agent;
     uint256 constant PRICE_THRESHOLD = 1000;
+
+    event ThresholdTriggered(uint256 price, string action, uint256 timestamp);
 
     function setUp() public {
         agent = new DeFiAgent(PRICE_THRESHOLD);
@@ -28,17 +31,17 @@ contract DeFiAgentTest is Test {
     }
 
     function test_PriceThresholdTrigger() public {
-        vm.expectEmit(true, true, true, true);
-        emit DeFiAgent.ThresholdTriggered(1500, "BUY_SIGNAL", block.timestamp);
-        
-        agent.updatePrice(1500);
+        // Test that the event is emitted when price exceeds threshold
+    vm.expectEmit(true, true, true, true);
+    emit ThresholdTriggered(1500, "BUY_SIGNAL", block.timestamp);
+    agent.updatePrice(1500);
     }
 
     function test_SellSignalTrigger() public {
-        vm.expectEmit(true, true, true, true);
-        emit DeFiAgent.ThresholdTriggered(700, "SELL_SIGNAL", block.timestamp);
-        
-        agent.updatePrice(700); // 70% of threshold triggers sell
+    // Test that the event is emitted when price drops below 80% of threshold
+    vm.expectEmit(true, true, true, true);
+    emit ThresholdTriggered(700, "SELL_SIGNAL", block.timestamp);
+    agent.updatePrice(700); // 70% of threshold triggers sell
     }
 
     function test_OnlyOwnerCanUpdate() public {
