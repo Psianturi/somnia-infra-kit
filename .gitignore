@@ -1,3 +1,6 @@
+# Allow lowercase test directory for CLI tests
+!test/
+!test/cli.test.js
 # Dependencies
 node_modules/
 npm-debug.log*
