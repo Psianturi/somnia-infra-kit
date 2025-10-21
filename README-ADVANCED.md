@@ -1,3 +1,55 @@
+# Advanced
+
+> **Advanced Usage: Somnia AI Agent CLI**
+This guide covers advanced features, troubleshooting, and best practices for the Somnia AI Agent CLI.
+
+## Table of Contents
+- [Project Structure](#project-structure)
+- [Custom Agent Templates](#custom-agent-templates)
+- [Automated Setup Scripts](#automated-setup-scripts)
+- [Environment Variables & Security](#environment-variables--security)
+- [Testing & Linting](#testing--linting)
+- [Deployment & Verification](#deployment--verification)
+- [Troubleshooting](#troubleshooting)
+
+---
+## Project Structure
+- `src/commands/`: CLI command implementations
+- `templates/`: Agent templates (defi, nft, yield, etc.)
+- `agent-template/`: Base template for custom agents
+- `test/`: CLI and structure tests
+
+## Custom Agent Templates
+- Use `somnia-cli create` for interactive or AI-powered agent generation.
+- Templates can be extended in `agent-template/` or copied to new folders.
+
+## Automated Setup Scripts
+- Each template includes `setup.sh` for dependency install and build.
+- Run `bash setup.sh` after copying or initializing a template.
+
+## Environment Variables & Security
+- Store secrets in `.env` (never commit to git).
+- Required: `SOMNIA_RPC_URL`, `PRIVATE_KEY` (64 hex chars, no 0x prefix).
+- CLI auto-validates and corrects `.env` on deploy.
+
+## Testing & Linting
+- Run `npm test` for CLI and structure checks.
+- Run `npx eslint src/commands` for linting.
+- Add more tests in `test/` as needed.
+
+## Deployment & Verification
+- Use `somnia-cli deploy` to deploy agents.
+- Deployment info saved to `.deployment.json`.
+- Auto-verification simulated; see logs for explorer links.
+
+## Troubleshooting
+- If a command fails, check `.env` and template structure.
+- For missing dependencies, rerun `setup.sh` or `npm install`.
+- For advanced debugging, use `somnia-cli debug`.
+
+---
+For more, see the main `README.md` or open an issue on GitHub.
+
 # SOMNIA INFRA KIT - ADVANCED GUIDE
 
 Comprehensive guide 
