@@ -381,6 +381,22 @@ async function createCustomProject(projectName, config) {
   \`\`\`
   `;
   await fs.writeFile(path.join(targetDir, 'README.md'), readme);
+
+  // Copy setup.sh from the global agent-template if present so generated custom projects are ready-to-run
+  try {
+    const globalSetup = path.join(__dirname, '..', '..', 'templates', 'agent-template', 'setup.sh');
+    const targetSetup = path.join(targetDir, 'setup.sh');
+    if (await fs.pathExists(globalSetup) && !(await fs.pathExists(targetSetup))) {
+      await fs.copy(globalSetup, targetSetup);
+      try {
+        await fs.chmod(targetSetup, 0o755);
+      } catch (e) {
+        // non-fatal
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
 }
 
 module.exports = { runWizard, createCustomProject, generateCustomContract };

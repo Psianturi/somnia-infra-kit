@@ -7,10 +7,8 @@
 
 **Somnia AI Agent CLI** is a developer toolkit and CLI for building, testing, and deploying AI-powered smart contract agents on the Somnia Blockchain. It provides ready-to-use templates (basic, DeFi, NFT, yield, custom), automated setup scripts, and a frictionless workflow for both beginners and advanced users. Suitable for rapid prototyping and production deployment.
 
----
 
-
-## � Quick Start
+## Quick Start
 
 ```bash
 # 0. Install the CLI globally (only once per machine)
@@ -45,7 +43,7 @@ See [README-ADVANCED.md](./README-ADVANCED.md) for advanced features, custom age
 
 ---
 
-## �📁 Project Structure
+## 📁 Project Structure
 
 ```
 somnia-agent-cli-sandbox/
@@ -63,4 +61,9 @@ somnia-agent-cli-sandbox/
 ├── README-ADVANCED.md    # Advanced usage and troubleshooting
 └── ...                   # Other config and support files
 ```
+
+Notes:
+- When you run a deployment locally with `forge script ... --broadcast`, Foundry writes artifacts under `broadcast/<script>/<chainId>/run-latest.json` and a cached copy under `cache/` — the CLI reads these to populate `.deployment.json` in the project root.
+- After a deploy attempt the CLI will create `.deployment.json` with fields: address, network, timestamp, verified, txStatus, wallet. This file is used by downstream tooling and CI to track deployments.
+- Typical per-project files you will see after `somnia-cli init` and `bash setup.sh` include `foundry.toml`, `script/Deploy.s.sol`, `src/AgentContract.sol`, `broadcast/`, and `cache/`.
 

@@ -155,41 +155,82 @@ async function deploy(options = {}) {
 
     console.log(chalk.cyan('🚀 Deploying AI Agent contract to Somnia Testnet...'));
 
-    // Derive wallet address for display
-    const walletAddress = '0x' + privateKey.slice(0, 8) + '...' + privateKey.slice(-6);
+    // Determine wallet address for display: prefer WALLET_ADDRESS from env, else derive a short fingerprint from privateKey
+    const envWallet = process.env.WALLET_ADDRESS || process.env.WALLETADDR || process.env.ADDRESS;
+    let walletAddress = null;
+    if (envWallet && /^0x[0-9a-fA-F]{40}$/.test(envWallet)) {
+      walletAddress = envWallet;
+    } else {
+      // Fallback: short fingerprint derived from private key (not full address derivation to avoid adding crypto libs)
+      walletAddress = '0x' + privateKey.slice(2, 10) + '...' + privateKey.slice(-6);
+      if (envWallet) {
+        console.log(chalk.yellow('⚠️  WALLET_ADDRESS in environment is present but invalid. Using derived fingerprint instead.'));
+      }
+    }
     console.log(chalk.gray(`📋 Using wallet: ${walletAddress}`));
 
     let forgeResult = { stdout: '', stderr: '' };
     const forgePath = 'forge';
-    try {
-      forgeResult = await execa(forgePath, [
-        'script',
-        'script/Deploy.s.sol',
-        '--rpc-url',
-        rpcUrl,
-        '--private-key',
-        privateKey,
-        '--broadcast',
-        '--gas-limit',
-        '1500000',
-        '--legacy'
-      ], {
-        cwd: process.cwd(),
-        stdio: 'pipe'
-      });
-    } catch (err) {
-      // Jika forge crash, tampilkan error
-      forgeResult.stdout = err.stdout || '';
-      forgeResult.stderr = err.stderr || '';
-      // Tetap lanjutkan analisa output untuk Transaction Failure
+    // Retry logic for transient errors (configurable)
+    const retriesFromEnv = process.env.SOMNIA_DEPLOY_RETRIES ? parseInt(process.env.SOMNIA_DEPLOY_RETRIES, 10) : NaN;
+    const maxRetries = Number.isFinite(retriesFromEnv) && retriesFromEnv >= 0 ? retriesFromEnv : (typeof options.retries === 'number' ? options.retries : 2);
+    let attempt = 0;
+    let lastError = null;
+    // Ensure PRIVATE_KEY is also present in the child env so vm.env* inside Forge scripts can read it
+    const childEnv = Object.assign({}, process.env, { PRIVATE_KEY: privateKey });
+    for (; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        const backoff = Math.min(30000, (2 ** attempt) * 1000 + Math.floor(Math.random() * 500));
+        console.log(chalk.yellow(`⏳ Retry attempt ${attempt}/${maxRetries} in ${backoff}ms...`));
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, backoff));
+      }
+      try {
+        forgeResult = await execa(forgePath, [
+          'script',
+          'script/Deploy.s.sol',
+          '--rpc-url',
+          rpcUrl,
+          '--private-key',
+          privateKey,
+          '--broadcast',
+          '--gas-limit',
+          '1500000',
+          '--legacy'
+        ], {
+          cwd: process.cwd(),
+          stdio: 'pipe',
+          env: childEnv
+        });
+        // If we got here, forge ran. Break retry loop and analyze output.
+        lastError = null;
+        break;
+      } catch (err) {
+        // capture error and decide whether to retry
+        lastError = err;
+        forgeResult = { stdout: err.stdout || '', stderr: err.stderr || '' };
+        const combined = (forgeResult.stdout || '') + (forgeResult.stderr || '');
+        // If Forge explicitly reports Transaction Failure, that's an on-chain revert — don't retry
+        if (combined.includes('Transaction Failure') || combined.includes('vm.envUint')) {
+          // keep forgeResult for later analysis
+          break;
+        }
+        // For other errors (network, RPC, spawn failure), we'll retry until attempts exhausted
+        if (attempt === maxRetries) {
+          break;
+        }
+        // otherwise loop will retry
+      }
     }
 
     const forgeOutput = (forgeResult.stdout || '') + (forgeResult.stderr || '');
+    let forgeFailed = false;
     if (forgeOutput.includes('Transaction Failure')) {
+      forgeFailed = true;
       console.error(chalk.red('❌ Forge reported a Transaction Failure.'));
-      console.error(chalk.red('❌ Deployment to network failed. Check logs above.'));
-      console.error(chalk.red('❌ Deployment to network failed. Cannot extract address from a failed transaction.'));
-      return;
+      console.error(chalk.red('❌ Deployment to network reported a failed transaction. Check logs above.'));
+      console.error(chalk.yellow('⚠️  Attempting to extract any saved broadcast artifacts to salvage deployment info.'));
+      // Do NOT return here; broadcast files are often written even when a transaction failed.
     }
 
     console.log(chalk.green('✅ Forge script execution completed (check network status).'));
@@ -218,15 +259,19 @@ async function deploy(options = {}) {
     if (contractAddress) {
       console.log(chalk.bold(`📍 Contract deployed at: ${contractAddress}`));
       // Auto-verify if enabled
-      if (options.verify !== false) {
+      if (!forgeFailed && options.verify !== false) {
         await verifyContract(contractAddress);
+      } else if (forgeFailed) {
+        console.log(chalk.yellow('⚠️  Skipping auto-verification because the broadcast reported a transaction failure.'));
       }
       // Save deployment info
       const deploymentInfo = {
         address: contractAddress,
         network: 'somnia-testnet',
         timestamp: new Date().toISOString(),
-        verified: options.verify !== false
+        verified: !forgeFailed && (options.verify !== false),
+        txStatus: forgeFailed ? 'failed' : 'success',
+        wallet: walletAddress
       };
       fs.writeFileSync(
         path.join(process.cwd(), '.deployment.json'),
@@ -247,21 +292,26 @@ async function deploy(options = {}) {
           }
           if (fallbackAddress) {
             console.log(chalk.bold(`[FALLBACK] 📍 Contract deployed at: ${fallbackAddress}`));
-            // Save deployment info
+            // Save deployment info (fallback)
             const deploymentInfo = {
               address: fallbackAddress,
               network: 'somnia-testnet',
               timestamp: new Date().toISOString(),
-              verified: options.verify !== false
+              verified: !forgeFailed && (options.verify !== false),
+              txStatus: forgeFailed ? 'failed' : 'success',
+              wallet: walletAddress
             };
             fs.writeFileSync(
               path.join(process.cwd(), '.deployment.json'),
               JSON.stringify(deploymentInfo, null, 2)
             );
             console.log(chalk.gray('\n📝 Deployment info saved to .deployment.json'));
+            if (forgeFailed) {
+              console.log(chalk.yellow('⚠️  Note: The transaction was reported as failed by Forge; deployment info may be incomplete.'));
+            }
           } else {
             console.log(chalk.yellow('⚠️  Could not extract contract address from broadcast logs.'));
-            console.log(chalk.gray('This might be because the transaction failed on the network.'));
+            console.log(chalk.gray('This might be because the transaction failed on the network and no address was emitted.'));
           }
         } else {
           console.log(chalk.yellow('⚠️  run-latest.json not found in broadcast directory.'));

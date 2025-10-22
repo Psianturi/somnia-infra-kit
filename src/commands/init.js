@@ -25,7 +25,7 @@ const TEMPLATES = {
   basic: {
     name: 'Basic Agent',
     description: 'Simple autonomous agent with trigger functionality',
-    path: 'agent-template',
+    path: path.join('templates', 'agent-template'),
     features: ['Automated triggers', 'Event logging', 'Owner access control']
   },
   defi: {
