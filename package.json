@@ -1,6 +1,6 @@
 {
   "name": "somnia-ai-agent-cli",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Somnia Infra Kit - CLI tool for developing and deploying Autonomous AI Agents on Somnia Blockchain",
   "main": "index.js",
   "type": "commonjs",
@@ -18,7 +18,7 @@
     "cli",
     "blockchain"
   ],
-  "author": "Somnia Team",
+  "author": "Psianturi",
   "license": "MIT",
   "bin": {
     "somnia-cli": "./index.js"
@@ -30,7 +30,11 @@
     "templates/",
     "utils/",
     "README.md",
-    "LICENSE"
+    "README-ADVANCED.md",
+    "CHANGELOG.md",
+    "docs/",
+    "LICENSE",
+    "package-lock.json"
   ],
   "dependencies": {
     "axios": "^1.12.2",

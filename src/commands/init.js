@@ -176,6 +176,25 @@ async function init(projectName, templateType = null, useWizard = false) {
       console.error(`Error copying template: ${copyError.message}`);
       throw copyError;
     }
+
+    // Ensure setup.sh is present in the generated project. Some packaging or copy cases
+    // may omit executable scripts; explicitly copy and set executable permission.
+    try {
+      const templateSetup = path.join(templateDir, 'setup.sh');
+      const projectSetup = path.join(projectDir, 'setup.sh');
+      if (await fs.pathExists(templateSetup) && !(await fs.pathExists(projectSetup))) {
+        await fs.copy(templateSetup, projectSetup);
+        try {
+          await fs.chmod(projectSetup, 0o755);
+        } catch (chmodErr) {
+          // Not fatal; just warn
+          console.log('⚠️  Could not set executable permission on setup.sh');
+        }
+      }
+    } catch (e) {
+      // Non-fatal; proceed but warn
+      console.log('⚠️  Could not ensure setup.sh was copied:', e.message || e);
+    }
     
     // Create .gitignore if it doesn't exist
     const gitignorePath = path.join(projectDir, '.gitignore');
