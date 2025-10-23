@@ -249,7 +249,6 @@ async function deploy(options = {}) {
         break;
       } catch (err) {
         // capture error and decide whether to retry
-        lastError = err;
         forgeResult = { stdout: err.stdout || '', stderr: err.stderr || '' };
         const combined = (forgeResult.stdout || '') + (forgeResult.stderr || '');
         // If Forge explicitly reports Transaction Failure, that's an on-chain revert — don't retry
@@ -336,7 +335,6 @@ async function deploy(options = {}) {
               console.log(chalk.red('❌ Retry also reported a Transaction Failure.'));
             }
             // re-evaluate broadcast artifacts after retry
-            const retryGasInfo = await readBroadcastGasInfo(broadcastDir);
             const retryAddress = await extractContractAddress(broadcastDir);
             if (retryAddress) {
               console.log(chalk.green(`✅ Retry succeeded; contract deployed at: ${retryAddress}`));

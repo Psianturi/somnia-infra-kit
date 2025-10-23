@@ -20,7 +20,7 @@ function postProcess(code, features) {
 
 function applyASTFixes(code, features) {
   // AST-based fixes (if parsing succeeds)
-  // For now, keep simple
+  // TODO: Implement AST-based fixes if needed
   return code;
 }
 

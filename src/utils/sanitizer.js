@@ -21,7 +21,7 @@ function sanitizeSoliditySource(input, options = {}) {
   let contractBlock = null;
   if (projectName) {
     const contractKeyword = new RegExp('contract\\s+' + projectName + '\\b');
-    let m = sanitized.search(contractKeyword);
+    const m = sanitized.search(contractKeyword);
     if (m !== -1) {
       const braceStart = sanitized.indexOf('{', m);
       if (braceStart !== -1) {
