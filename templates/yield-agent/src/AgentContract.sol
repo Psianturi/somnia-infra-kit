@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-event Withdrawn(address indexed to, uint256 amount);
-
 contract AgentContract is Ownable {
     uint256 public yield;
+
+    event Withdrawn(address indexed to, uint256 amount);
 
     constructor(address initialOwner) Ownable(initialOwner) {}
 
