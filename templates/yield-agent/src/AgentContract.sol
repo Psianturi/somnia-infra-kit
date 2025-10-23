@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-event Withdrawn(address indexed to, uint256 amount);
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
+event Withdrawn(address indexed to, uint256 amount);
 
 contract AgentContract is Ownable {
     uint256 public yield;

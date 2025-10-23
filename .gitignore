@@ -71,4 +71,10 @@ Test*/
 
 # Ignore Foundry/Forge dependencies in all agent templates
 **/lib/forge-std/
+
+# Ignore generated local test templates
+somnia-agents/templates/agent-template/TestAgentLocal/
+somnia-agents/templates/agent-template/AI_*/
+somnia-agents/templates/agent-template/Sanitized*/
+somnia-agents/templates/agent-template/*/lib/
 **/lib/openzeppelin-contracts/

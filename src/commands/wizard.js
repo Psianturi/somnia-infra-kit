@@ -196,15 +196,18 @@ async function runWizard(projectName) {
 function generateCustomContract(projectName, config) {
   const { basicInfo, selectedFeatures } = config;
   
+  // Sanitize projectName to valid Solidity identifier
+  const sanitizedName = projectName.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^[^a-zA-Z_]/, 'Agent_');
+  
   let contractCode = `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 /**
- * @title ${projectName}
+ * @title ${sanitizedName}
  * @dev ${basicInfo.description}
  * @author Somnia AI Agent CLI
  */
-contract ${projectName} {
+contract ${sanitizedName} {
     address public owner;
     bool public isActive;
     uint256 public lastUpdate;
@@ -280,6 +283,7 @@ async function createCustomProject(projectName, config) {
   // projectName is now absolute path to target folder
   const targetDir = projectName;
   const nameOnly = path.basename(targetDir);
+  const sanitizedName = nameOnly.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^[^a-zA-Z_]/, 'Agent_');
 
   // Create project structure
   await fs.ensureDir(path.join(targetDir, 'src'));
@@ -287,15 +291,15 @@ async function createCustomProject(projectName, config) {
   await fs.ensureDir(path.join(targetDir, 'script'));
 
   // Generate custom contract
-  const contractCode = generateCustomContract(nameOnly, config);
-  await fs.writeFile(path.join(targetDir, 'src', `${nameOnly}.sol`), contractCode);
+  const contractCode = generateCustomContract(sanitizedName, config);
+  await fs.writeFile(path.join(targetDir, 'src', `${sanitizedName}.sol`), contractCode);
 
   // Create foundry.toml
   const foundryConfig = `[profile.default]
   src = "src"
   out = "out"
   libs = ["lib"]
-  solc_version = "0.8.19"
+  solc_version = "0.8.20"
 
   [rpc_endpoints]
   somnia_testnet = "https://dream-rpc.somnia.network"`;
@@ -303,16 +307,16 @@ async function createCustomProject(projectName, config) {
 
   // Create basic test
   const testCode = `// SPDX-License-Identifier: MIT
-  pragma solidity ^0.8.19;
+  pragma solidity ^0.8.20;
 
   import "forge-std/Test.sol";
-  import "../src/${nameOnly}.sol";
+  import "../src/${sanitizedName}.sol";
 
-  contract ${nameOnly}Test is Test {
-    ${nameOnly} public agent;
+  contract ${sanitizedName}Test is Test {
+    ${sanitizedName} public agent;
       
     function setUp() public {
-      agent = new ${nameOnly}();
+      agent = new ${sanitizedName}();
     }
       
     function test_InitialState() public {
@@ -328,22 +332,22 @@ async function createCustomProject(projectName, config) {
       assertTrue(agent.isActive());
     }
   }`;
-  await fs.writeFile(path.join(targetDir, 'test', `${nameOnly}.t.sol`), testCode);
+  await fs.writeFile(path.join(targetDir, 'test', `${sanitizedName}.t.sol`), testCode);
 
   // Create deployment script
   const deployScript = `// SPDX-License-Identifier: MIT
-  pragma solidity ^0.8.19;
+  pragma solidity ^0.8.20;
 
   import "forge-std/Script.sol";
-  import "../src/${nameOnly}.sol";
+  import "../src/${sanitizedName}.sol";
 
-  contract Deploy${nameOnly} is Script {
+  contract Deploy${sanitizedName} is Script {
     function run() external {
       vm.startBroadcast();
           
-      ${nameOnly} agent = new ${nameOnly}();
+      ${sanitizedName} agent = new ${sanitizedName}();
           
-      console.log("${nameOnly} deployed at:", address(agent));
+      console.log("${sanitizedName} deployed at:", address(agent));
           
       vm.stopBroadcast();
     }
@@ -384,7 +388,7 @@ async function createCustomProject(projectName, config) {
 
   // Copy setup.sh from the global agent-template if present so generated custom projects are ready-to-run
   try {
-    const globalSetup = path.join(__dirname, '..', '..', 'templates', 'agent-template', 'setup.sh');
+    const globalSetup = path.join(__dirname, '..', '..', 'agent-template', 'setup.sh');
     const targetSetup = path.join(targetDir, 'setup.sh');
     if (await fs.pathExists(globalSetup) && !(await fs.pathExists(targetSetup))) {
       await fs.copy(globalSetup, targetSetup);

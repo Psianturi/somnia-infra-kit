@@ -1,15 +1,15 @@
-
 // Refactored CLI command for generating a full custom agent project using AI or wizard
 const inquirer = require('inquirer');
 const path = require('path');
 const fs = require('fs-extra');
 const { generateWithAI } = require('../../utils/ai');
 const { runWizard, createCustomProject } = require('./wizard');
+const { postProcess } = require('../../utils/postProcessAI');
 
 async function customAgent(projectName = null, opts = {}) {
   console.log('\nSomnia Custom Agent Project Generator\n');
 
-  // Step 1: Ask for project name if not provided by caller
+  // 1) Ask for project name if not provided
   if (!projectName) {
     const resp = await inquirer.prompt([
       {
@@ -28,7 +28,7 @@ async function customAgent(projectName = null, opts = {}) {
     projectName = resp.projectName;
   }
 
-  // Step 2: Determine whether to use AI
+  // 2) Determine whether to use AI
   let useAI = opts.forceAI === true;
   if (typeof useAI !== 'boolean' || useAI === false) {
     const { useAI: reply } = await inquirer.prompt([
@@ -42,10 +42,10 @@ async function customAgent(projectName = null, opts = {}) {
     useAI = reply;
   }
 
-  // Step 3: Gather features and config using wizard
+  // 3) Gather features and config using wizard
   const wizardConfig = await runWizard(projectName);
 
-  // Step 3: Generate contract code (AI or wizard)
+  // 4) Generate contract code (AI or wizard)
   let contractCode;
   if (useAI) {
     const { openaiApiKey } = await inquirer.prompt([
@@ -63,6 +63,8 @@ async function customAgent(projectName = null, opts = {}) {
         features: wizardConfig.selectedFeatures,
         description: wizardConfig.basicInfo.description
       }, openaiApiKey);
+      // Post-process AI-generated code
+      contractCode = postProcess(contractCode, wizardConfig.selectedFeatures);
     } catch (e) {
       console.error('\n❌ AI generation failed:', e.message);
       return;
@@ -70,20 +72,23 @@ async function customAgent(projectName = null, opts = {}) {
   } else {
     // Use wizard to generate contract code
     contractCode = require('./wizard').generateCustomContract(projectName, wizardConfig);
+    // Post-process wizard-generated code for consistency
+    contractCode = postProcess(contractCode, wizardConfig.selectedFeatures);
   }
 
-  // Step 4: Create full project structure inside template/agent-template
-  const targetDir = path.join(process.cwd(), 'templates', 'agent-template', projectName);
+  // 5) Create full project structure
+  const targetDir = path.join(process.cwd(), projectName);
   await createCustomProject(targetDir, wizardConfig);
 
-  // Overwrite contract file with AI code if needed
-  if (useAI) {
-    const outPath = path.join(targetDir, 'src', `${projectName}.sol`);
-    await fs.ensureDir(path.dirname(outPath));
-    await fs.writeFile(outPath, contractCode);
-  }
+  // 6) Sanitize and overwrite the generated contract file (handles AI or wizard output)
+  const outPath = path.join(targetDir, 'src', `${projectName}.sol`);
+  await fs.ensureDir(path.dirname(outPath));
 
-  console.log(`\n✅ Custom agent project generated at: templates/agent-template/${projectName}`);
+  const { sanitizeSoliditySource } = require('../utils/sanitizer');
+  const finalContent = sanitizeSoliditySource(contractCode, { projectName });
+  await fs.writeFile(outPath, finalContent, 'utf8');
+
+  console.log(`\n✅ Custom agent project generated at: ${targetDir}`);
 }
 
 module.exports = customAgent;

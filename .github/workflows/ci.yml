@@ -11,14 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm install
@@ -30,18 +30,12 @@ jobs:
           else
             echo 'No ESLint config found, skipping lint.'
           fi
-
       - name: Test JavaScript
         run: npm test
 
       - name: Audit npm dependencies
         run: |
-          # Try audit with timeout to prevent hanging
-          if timeout 45 npm audit --audit-level=moderate; then
-            echo "✅ No vulnerabilities found"
-          else
-            echo "⚠️ Audit service unavailable or vulnerabilities found, but continuing..."
-          fi
+          npm audit --audit-level=moderate || echo 'Audit completed with warnings'
         continue-on-error: true
 
       - name: Install Foundry
@@ -93,4 +87,12 @@ jobs:
           else
             echo 'Foundry not available, skipping Solidity tests'
           fi
+        continue-on-error: true
+
+      - name: Test custom agent generation
+        run: |
+          node -e "(async()=>{const wizard=require('./src/commands/wizard');const fs=require('fs-extra');const path=require('path');const project='TestAgentLocal';const target=path.join('somnia-agents','templates','agent-template',project);await fs.ensureDir(target);await wizard.createCustomProject(target,{basicInfo:{description:'CI generated'},selectedFeatures:[]});console.log('generated',target)})().catch(e=>{console.error(e);process.exit(1)})"
+          cd somnia-agents/templates/agent-template/TestAgentLocal
+          bash setup.sh
+          forge test
         continue-on-error: true

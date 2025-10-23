@@ -11,7 +11,21 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const chalk = require('chalk');
-require('dotenv').config();
+// Load .env but preserve any variables that were explicitly exported in the environment
+const dotenv = require('dotenv');
+// Save current explicit env values that should take precedence
+const _preserveEnv = {
+  SOMNIA_RPC_URL: process.env.SOMNIA_RPC_URL,
+  PRIVATE_KEY: process.env.PRIVATE_KEY,
+  WALLET_ADDRESS: process.env.WALLET_ADDRESS
+};
+dotenv.config();
+// Restore preserved values so exported vars override .env
+Object.keys(_preserveEnv).forEach(k => {
+  if (typeof _preserveEnv[k] !== 'undefined' && _preserveEnv[k] !== null) {
+    process.env[k] = _preserveEnv[k];
+  }
+});
 
 function decryptPrivateKey(encryptedKey, password = 'somnia-default') {
   try {
@@ -73,6 +87,30 @@ async function extractContractAddress(broadcastDir) {
   } catch (error) {
     console.log(chalk.yellow('⚠️  Could not extract contract address from broadcast logs'));
     console.log('[DEBUG] Error extracting contract address:', error);
+  }
+  return null;
+}
+
+async function readBroadcastGasInfo(broadcastDir) {
+  try {
+    const latestFile = path.join(broadcastDir, 'run-latest.json');
+    if (fs.existsSync(latestFile)) {
+      const broadcastData = JSON.parse(fs.readFileSync(latestFile, 'utf8'));
+      const infos = [];
+      if (broadcastData.receipts && Array.isArray(broadcastData.receipts)) {
+        for (const rc of broadcastData.receipts) {
+          infos.push({ gasUsed: rc.gasUsed || rc.gas_used || null, gasLimit: rc.gasLimit || rc.gas_limit || null });
+        }
+      }
+      if (broadcastData.transactions && Array.isArray(broadcastData.transactions)) {
+        for (const tx of broadcastData.transactions) {
+          infos.push({ gasUsed: tx.gasUsed || tx.gas_used || null, gasLimit: tx.gas || tx.gasLimit || tx.gas_limit || null });
+        }
+      }
+      return { file: latestFile, infos };
+    }
+  } catch (error) {
+    // ignore
   }
   return null;
 }
@@ -153,7 +191,7 @@ async function deploy(options = {}) {
       process.exit(1);
     }
 
-    console.log(chalk.cyan('🚀 Deploying AI Agent contract to Somnia Testnet...'));
+  console.log(chalk.cyan('🚀 Deploying AI Agent contract to Somnia Testnet...'));
 
     // Determine wallet address for display: prefer WALLET_ADDRESS from env, else derive a short fingerprint from privateKey
     const envWallet = process.env.WALLET_ADDRESS || process.env.WALLETADDR || process.env.ADDRESS;
@@ -170,10 +208,14 @@ async function deploy(options = {}) {
     console.log(chalk.gray(`📋 Using wallet: ${walletAddress}`));
 
     let forgeResult = { stdout: '', stderr: '' };
-    const forgePath = 'forge';
-    // Retry logic for transient errors (configurable)
-    const retriesFromEnv = process.env.SOMNIA_DEPLOY_RETRIES ? parseInt(process.env.SOMNIA_DEPLOY_RETRIES, 10) : NaN;
-    const maxRetries = Number.isFinite(retriesFromEnv) && retriesFromEnv >= 0 ? retriesFromEnv : (typeof options.retries === 'number' ? options.retries : 2);
+  const forgePath = 'forge';
+  // Retry logic for transient errors (configurable)
+  const retriesFromEnv = process.env.SOMNIA_DEPLOY_RETRIES ? parseInt(process.env.SOMNIA_DEPLOY_RETRIES, 10) : NaN;
+  const maxRetries = Number.isFinite(retriesFromEnv) && retriesFromEnv >= 0 ? retriesFromEnv : (typeof options.retries === 'number' ? options.retries : 2);
+  // Gas limit: prefer explicit env SOMNIA_GAS_LIMIT, then options, then a high default to avoid OOG
+  const envGas = process.env.SOMNIA_GAS_LIMIT ? parseInt(process.env.SOMNIA_GAS_LIMIT, 10) : NaN;
+  const defaultHighGas = 13000000; // safe high default (approx block gas limit)
+  const configuredGas = Number.isFinite(envGas) && envGas > 0 ? envGas : (typeof options.gasLimit === 'number' ? options.gasLimit : defaultHighGas);
     let attempt = 0;
     let lastError = null;
     // Ensure PRIVATE_KEY is also present in the child env so vm.env* inside Forge scripts can read it
@@ -195,7 +237,7 @@ async function deploy(options = {}) {
           privateKey,
           '--broadcast',
           '--gas-limit',
-          '1500000',
+          String(configuredGas),
           '--legacy'
         ], {
           cwd: process.cwd(),
@@ -233,7 +275,7 @@ async function deploy(options = {}) {
       // Do NOT return here; broadcast files are often written even when a transaction failed.
     }
 
-    console.log(chalk.green('✅ Forge script execution completed (check network status).'));
+  console.log(chalk.green('✅ Forge script execution completed (check network status).'));
 
     // Find chain ID folder dynamically from broadcast
     const broadcastBase = path.join(process.cwd(), 'broadcast', 'Deploy.s.sol');
@@ -253,8 +295,76 @@ async function deploy(options = {}) {
     } catch (err) {
       console.log('[DEBUG] Error reading broadcastBase:', err);
     }
-  const contractAddress = await extractContractAddress(broadcastDir);
+    const contractAddress = await extractContractAddress(broadcastDir);
   console.log('[DEBUG] Extracted contractAddress:', contractAddress);
+
+  // If no contract address found, check for out-of-gas indications and offer/attempt retry
+  if (!contractAddress) {
+    const gasInfo = await readBroadcastGasInfo(broadcastDir);
+    if (gasInfo && gasInfo.infos && gasInfo.infos.length) {
+      // Find any entry where gasUsed and gasLimit are equal (possible OOG)
+      const oog = gasInfo.infos.find(i => i && i.gasUsed && i.gasLimit && Number(i.gasUsed) === Number(i.gasLimit));
+      if (oog) {
+        console.log(chalk.yellow('\n⚠️  Detected that the broadcast consumed all provided gas (gasUsed == gasLimit). This usually means Out-of-Gas during deployment.'));
+        console.log(chalk.yellow(`    Broadcast file: ${gasInfo.file}`));
+        console.log(chalk.yellow(`    gasUsed: ${oog.gasUsed}  gasLimit: ${oog.gasLimit}`));
+        console.log(chalk.yellow('    Suggestion: increase SOMNIA_GAS_LIMIT (e.g. 13000000) and retry.'));
+
+        // Attempt one automatic retry with a larger gas limit if we haven't already retried that way
+        const increasedGas = Math.min((configuredGas * 2), 13183008);
+        if (increasedGas > configuredGas) {
+          console.log(chalk.cyan(`\n🔁 Attempting one automatic retry with increased gas limit: ${increasedGas}...`));
+          try {
+            const retryResult = await execa(forgePath, [
+              'script',
+              'script/Deploy.s.sol',
+              '--rpc-url',
+              rpcUrl,
+              '--private-key',
+              privateKey,
+              '--broadcast',
+              '--gas-limit',
+              String(increasedGas),
+              '--legacy'
+            ], {
+              cwd: process.cwd(),
+              stdio: 'pipe',
+              env: Object.assign({}, childEnv, { SOMNIA_GAS_LIMIT: String(increasedGas) })
+            });
+            const retryOutput = (retryResult.stdout || '') + (retryResult.stderr || '');
+            if (retryOutput.includes('Transaction Failure')) {
+              console.log(chalk.red('❌ Retry also reported a Transaction Failure.'));
+            }
+            // re-evaluate broadcast artifacts after retry
+            const retryGasInfo = await readBroadcastGasInfo(broadcastDir);
+            const retryAddress = await extractContractAddress(broadcastDir);
+            if (retryAddress) {
+              console.log(chalk.green(`✅ Retry succeeded; contract deployed at: ${retryAddress}`));
+              // Save deployment info
+              const deploymentInfo = {
+                address: retryAddress,
+                network: 'somnia-testnet',
+                timestamp: new Date().toISOString(),
+                verified: false,
+                txStatus: 'success',
+                wallet: walletAddress
+              };
+              fs.writeFileSync(
+                path.join(process.cwd(), '.deployment.json'),
+                JSON.stringify(deploymentInfo, null, 2)
+              );
+              console.log(chalk.gray('\n📝 Deployment info saved to .deployment.json'));
+              return;
+            } else {
+              console.log(chalk.yellow('⚠️  Retry did not produce a contract address. Check broadcast logs and try again manually with a higher gas limit.'));
+            }
+          } catch (retryErr) {
+            console.log(chalk.red('❌ Automatic retry failed:'), retryErr.message || retryErr);
+          }
+        }
+      }
+    }
+  }
 
     if (contractAddress) {
       console.log(chalk.bold(`📍 Contract deployed at: ${contractAddress}`));

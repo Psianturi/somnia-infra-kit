@@ -1,7 +1,6 @@
-
 # SOMNIA INFRA KIT
 
-[![npm version](https://badge.fury.io/js/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
+[![npm version](https://badge.fury.io/js/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli/v/1.0.10)
 [![npm downloads](https://img.shields.io/npm/dt/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
 [![GitHub release](https://img.shields.io/github/v/release/Psianturi/somnia-infra-kit.svg)](https://github.com/Psianturi/somnia-infra-kit/releases)
 
@@ -23,18 +22,38 @@ bash setup.sh
 
 # 3. Configure .env (RPC & private key)
 somnia-cli config
+# Alternative: Create .env manually
+# echo "SOMNIA_RPC_URL=https://dream-rpc.somnia.network" > .env
+# echo "PRIVATE_KEY=your_64_char_hex_private_key" >> .env
+# echo "WALLET_ADDRESS=your_wallet_address" >> .env
 
 # 4. Run tests
 forge test
 
 # 5. Deploy to Somnia Testnet
 somnia-cli deploy
+
+# Alternative: Deploy with Foundry directly
+forge script script/Deploy.s.sol --rpc-url https://dream-rpc.somnia.network --broadcast --verify
 ```
 
 ### Troubleshooting
 - Make sure Foundry (forge) is installed: https://book.getfoundry.sh/getting-started/installation
 - If you get dependency errors, rerun `bash setup.sh`
 - If you get private key errors, check your .env (must be 64 hex chars, no 0x)
+
+---
+
+## 🔧 Code Sanitization
+
+The CLI includes a built-in sanitizer that automatically cleans AI-generated Solidity code to ensure compatibility and prevent common errors:
+
+- **Solidity Compiler**: Enforces version `^0.8.20` for all generated contracts
+- **Import Normalization**: Corrects OpenZeppelin imports (e.g., from deprecated `security/` to `utils/` paths)
+- **Deduplication**: Removes duplicate SPDX licenses and pragma statements
+- **Content Extraction**: Strips markdown fences, comments, or embedded content to extract clean contract code
+
+This feature is particularly useful for custom agent generation, ensuring templates compile without pragma or import errors.
 
 ---
 

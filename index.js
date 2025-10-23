@@ -65,10 +65,20 @@ program
   .command('deploy')
   .description('Deploy the AI Agent contract to Somnia Testnet')
   .option('-n, --network <network>', 'Network to deploy to', 'testnet')
+  .option('--gas-limit <n>', 'Gas limit to use for deployment (overrides SOMNIA_GAS_LIMIT env)')
   .option('--verify', 'Auto-verify contract on explorer (default: true)', true)
   .option('--no-verify', 'Skip contract verification')
   .action((options) => {
     const deploy = require('./src/commands/deploy');
+    // Normalize gasLimit to number if provided
+    if (options.gasLimit) {
+      const parsed = parseInt(options.gasLimit, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        console.error('Invalid --gas-limit value; must be a positive integer');
+        process.exit(1);
+      }
+      options.gasLimit = parsed;
+    }
     deploy(options);
   });
 
