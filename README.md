@@ -44,18 +44,7 @@ forge script script/Deploy.s.sol --rpc-url https://dream-rpc.somnia.network --br
 
 ---
 
-## 🔧 Code Sanitization
 
-The CLI includes a built-in sanitizer that automatically cleans AI-generated Solidity code to ensure compatibility and prevent common errors:
-
-- **Solidity Compiler**: Enforces version `^0.8.20` for all generated contracts
-- **Import Normalization**: Corrects OpenZeppelin imports (e.g., from deprecated `security/` to `utils/` paths)
-- **Deduplication**: Removes duplicate SPDX licenses and pragma statements
-- **Content Extraction**: Strips markdown fences, comments, or embedded content to extract clean contract code
-
-This feature is particularly useful for custom agent generation, ensuring templates compile without pragma or import errors.
-
----
 
 ## 🔗 Advanced Usage & Full Guide
 See [README-ADVANCED.md](./README-ADVANCED.md) for advanced features, custom agents, upgrades, and detailed troubleshooting.

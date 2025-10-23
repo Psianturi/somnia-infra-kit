@@ -3,12 +3,6 @@
 > **Advanced Usage: Somnia AI Agent CLI**
 This guide covers advanced features, troubleshooting, and best practices for the Somnia AI Agent CLI.
 
-## What's new (v1.0.9)
-
-- Fix: fallback extraction for broadcast artifacts (reads transactions[].contractAddress when receipts are empty).
-- Feature: retry-with-backoff for transient forge/rpc errors (configurable via SOMNIA_DEPLOY_RETRIES).
-- Feature: WALLET_ADDRESS support in `.env` for clearer logging and saved to `.deployment.json`.
-- Improvement: better .deployment.json saving even when Forge reports Transaction Failure to aid debugging.
 
 ## Table of Contents
 - [Project Structure](#project-structure)
