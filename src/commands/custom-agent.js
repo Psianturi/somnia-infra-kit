@@ -6,6 +6,11 @@ const { generateWithAI } = require('../../utils/ai');
 const { runWizard, createCustomProject } = require('./wizard');
 const { postProcess } = require('../../utils/postProcessAI');
 
+// Suppress inquirer circular dependency warning
+process.on('warning', (warning) => {
+  if (warning.message.includes('INVALID_ALT_NUMBER')) return;
+});
+
 async function customAgent(projectName = null, opts = {}) {
   console.log('\nSomnia Custom Agent Project Generator\n');
 

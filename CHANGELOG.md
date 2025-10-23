@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.10] - 2024-10-25
+
+### Added
+- Hybrid AI approach for custom agents: base Solidity template ensures valid structure, AI adds features
+- Feature filtering in AI prompts to limit to allowed features: Staking, Rewards Distribution, Access Control, Price Monitoring
+- Post-processing improvements with regex fallbacks for AI-generated code fixes
+
+### Fixed
+- Yield-agent template compilation errors (event placement and test declarations)
+- ESLint warnings in deploy.js, sanitizer.js, and postProcessAI.js (unused variables)
+- Custom agent generation stability with hybrid AI reducing unpredictability
+
+### Changed
+- Improved AI prompts in utils/ai.js for better feature integration
+- Updated templates to use consistent import styles and fix lint warnings
+
 ## [1.0.11] - 2024-10-24
 
 ### Added
