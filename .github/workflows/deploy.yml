@@ -27,7 +27,12 @@ jobs:
 
       - name: Install Forge Dependencies
         run: |
-          cd agent-template && forge install || echo 'Forge install completed'
+          cd agent-template
+          git init
+          git add .
+          git commit -m "Initial commit" || true
+          forge install foundry-rs/forge-std --no-commit || echo 'Forge install completed'
+          ls -la lib/ || echo 'No lib directory'
 
       - name: "Build Solidity contracts"
         run: forge build --root ./agent-template
