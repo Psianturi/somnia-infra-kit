@@ -65,7 +65,13 @@ program
   .command('deploy')
   .description('Deploy the AI Agent contract to Somnia Testnet')
   .option('-n, --network <network>', 'Network to deploy to', 'testnet')
+  .option('--contract <target>', 'Explicit contract target in format <path/to/File.sol>:ContractName')
+  .option('--constructor-args [args...]', 'Constructor args to pass to the contract (space separated)')
   .option('--gas-limit <n>', 'Gas limit to use for deployment (overrides SOMNIA_GAS_LIMIT env)')
+  .option('--broadcast', 'Actually broadcast the transaction (default: dry-run)')
+  .option('--legacy', 'Force legacy (type 0) transaction instead of EIP-1559')
+  .option('--max-fee-per-gas <n>', 'Optional maxFeePerGas (wei) for EIP-1559 txs')
+  .option('--max-priority-fee-per-gas <n>', 'Optional maxPriorityFeePerGas (wei) for EIP-1559 txs')
   .option('--verify', 'Auto-verify contract on explorer (default: true)', true)
   .option('--no-verify', 'Skip contract verification')
   .action((options) => {
@@ -78,6 +84,27 @@ program
         process.exit(1);
       }
       options.gasLimit = parsed;
+    }
+    // Normalize EIP-1559 fee options
+    if (options.maxFeePerGas) {
+      const parsed = parseInt(options.maxFeePerGas, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        console.error('Invalid --max-fee-per-gas; must be a positive integer (wei)');
+        process.exit(1);
+      }
+      options.maxFeePerGas = parsed;
+    }
+    if (options.maxPriorityFeePerGas) {
+      const parsed = parseInt(options.maxPriorityFeePerGas, 10);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        console.error('Invalid --max-priority-fee-per-gas; must be a non-negative integer (wei)');
+        process.exit(1);
+      }
+      options.maxPriorityFeePerGas = parsed;
+    }
+    // Normalize constructor args
+    if (options.constructorArgs && Array.isArray(options.constructorArgs) && options.constructorArgs.length === 0) {
+      options.constructorArgs = undefined;
     }
     deploy(options);
   });

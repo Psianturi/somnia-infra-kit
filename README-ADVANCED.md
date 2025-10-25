@@ -42,6 +42,12 @@ This guide covers advanced features, troubleshooting, and best practices for the
 - Use `somnia-cli deploy` to deploy agents.
 - Deployment info saved to `.deployment.json`.
 - Auto-verification simulated; see logs for explorer links.
+## Deployment & Verification
+- Use `somnia-cli deploy` to deploy agents. The CLI uses `forge create` for Somnia and will broadcast by default.
+- If you want to prepare a transaction but NOT send it, add `--no-broadcast` to perform a dry-run.
+- The CLI automatically searches parent directories for a `.env` and will load the first one it finds, so running `somnia-cli deploy` inside a template folder will pick up `TestAgent/.env`.
+- After a deploy the CLI writes `.deployment.json` containing: address, txHash, network, timestamp, verified, txStatus, wallet. Use `cast receipt <txHash> --rpc-url <SOMNIA_RPC_URL>` to fetch the authoritative on-chain receipt.
+- Auto-verification in the CLI is simulated; for explorer verification use the explorer's API or manual verification steps.
 
 ## Troubleshooting
 - If a command fails, check `.env` and template structure.
@@ -88,6 +94,22 @@ forge test
 ## 6. Deploy
 ```bash
 somnia-cli deploy
+```
+
+Recommended safe deploy flow (local)
+```bash
+# 1) Build & test
+forge test
+
+# 2) Dry-run deploy (prepare tx without broadcasting)
+somnia-cli deploy --no-broadcast --contract src/DeFiAgent.sol:DeFiAgent --constructor-args 100 --gas-limit 13000000
+
+# 3) If dry-run output looks good, broadcast
+somnia-cli deploy --contract src/DeFiAgent.sol:DeFiAgent --constructor-args 100 --gas-limit 13000000
+
+# 4) Fetch authoritative receipt
+TX=$(jq -r .txHash .deployment.json)
+cast receipt $TX --rpc-url "$SOMNIA_RPC_URL"
 ```
 
 ## 7. Preflight Validation (Optional)
