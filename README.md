@@ -1,13 +1,13 @@
 # SOMNIA INFRA KIT
 
-[![npm version](https://badge.fury.io/js/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli/v/1.0.10)
+[![npm version](https://badge.fury.io/js/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
 [![npm downloads](https://img.shields.io/npm/dt/somnia-ai-agent-cli.svg)](https://www.npmjs.com/package/somnia-ai-agent-cli)
 [![GitHub release](https://img.shields.io/github/v/release/Psianturi/somnia-infra-kit.svg)](https://github.com/Psianturi/somnia-infra-kit/releases)
 
 **Somnia AI Agent CLI** is a developer toolkit and CLI for building, testing, and deploying AI-powered smart contract agents on the Somnia Blockchain. It provides ready-to-use templates (basic, DeFi, NFT, yield, custom), automated setup scripts, and a frictionless workflow for both beginners and advanced users. Suitable for rapid prototyping and production deployment.
 
 
-## Quick Start
+# Quick Start
 
 ```bash
 # 0. Install the CLI globally (only once per machine)
@@ -22,7 +22,7 @@ bash setup.sh
 
 # 3. Configure .env (RPC & private key)
 somnia-cli config
-# Alternative: Create .env manually
+# Alternative: Create .env manually (the CLI will load  .env automatically)
 # echo "SOMNIA_RPC_URL=https://dream-rpc.somnia.network" > .env
 # echo "PRIVATE_KEY=your_64_char_hex_private_key" >> .env
 # echo "WALLET_ADDRESS=your_wallet_address" >> .env
@@ -31,10 +31,14 @@ somnia-cli config
 forge test
 
 # 5. Deploy to Somnia Testnet
+# Note: deploy now uses `forge create` and the CLI will BROADCAST by default.
+# Use `--no-broadcast` for a dry-run (prepare tx but do not send).
 somnia-cli deploy
+# Dry-run example (recommended before first broadcast):
+somnia-cli deploy --no-broadcast
 
-# Alternative: Deploy with Foundry directly
-forge script script/Deploy.s.sol --rpc-url https://dream-rpc.somnia.network --broadcast --verify
+# Advanced: explicit Foundry create (equivalent low-level step)
+forge create src/AgentContract.sol:AgentContract --rpc-url https://dream-rpc.somnia.network --private-key <key> --gas-limit 13000000
 ```
 
 ### Troubleshooting
@@ -71,7 +75,8 @@ somnia-agent-cli-sandbox/
 ```
 
 Notes:
-- When you run a deployment locally with `forge script ... --broadcast`, Foundry writes artifacts under `broadcast/<script>/<chainId>/run-latest.json` and a cached copy under `cache/` — the CLI reads these to populate `.deployment.json` in the project root.
-- After a deploy attempt the CLI will create `.deployment.json` with fields: address, network, timestamp, verified, txStatus, wallet. This file is used by downstream tooling and CI to track deployments.
+- The CLI now prefers `forge create` for Somnia deployments; deploys are broadcast by default. If you want to inspect the prepared transaction without sending it, use `--no-broadcast`.
+- The CLI will search upward from the current working directory for a nearby `.env` and load it automatically, so you can run `somnia-cli deploy` from a template folder and it will find `TestAgent/.env`.
+- After a deploy attempt the CLI writes `.deployment.json` with: address, txHash, network, timestamp, verified, txStatus, wallet. Use this file for verification, tracking and CI.
 - Typical per-project files you will see after `somnia-cli init` and `bash setup.sh` include `foundry.toml`, `script/Deploy.s.sol`, `src/AgentContract.sol`, `broadcast/`, and `cache/`.
 

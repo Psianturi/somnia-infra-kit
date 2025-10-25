@@ -19,7 +19,26 @@ const _preserveEnv = {
   PRIVATE_KEY: process.env.PRIVATE_KEY,
   WALLET_ADDRESS: process.env.WALLET_ADDRESS
 };
-dotenv.config();
+// Try to find a .env file in the current working directory or any parent directory
+function findEnvFile(startDir) {
+  let dir = path.resolve(startDir || process.cwd());
+  const root = path.parse(dir).root;
+  while (true) {
+    const candidate = path.join(dir, '.env');
+    if (fs.existsSync(candidate)) return candidate;
+    if (dir === root) break;
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
+const _envPath = findEnvFile(process.cwd());
+if (_envPath) {
+  dotenv.config({ path: _envPath });
+  console.log('[DEBUG] Loaded .env from', _envPath);
+} else {
+  dotenv.config();
+}
 // Restore preserved values so exported vars override .env
 Object.keys(_preserveEnv).forEach(k => {
   if (typeof _preserveEnv[k] !== 'undefined' && _preserveEnv[k] !== null) {
@@ -175,6 +194,12 @@ async function deploy(options = {}) {
   const rpcUrl = process.env.SOMNIA_RPC_URL;
   const encryptedKey = process.env.PRIVATE_KEY;
 
+      // Default behavior: broadcast by default unless the caller explicitly set broadcast=false
+      // This makes `node index.js deploy` send the transaction unless `--no-broadcast` is used.
+      if (typeof options.broadcast === 'undefined') {
+        options.broadcast = true;
+      }
+
     if (!rpcUrl || !encryptedKey) {
       console.error(chalk.red('❌ Missing required environment variables. Please run somnia-cli config.'));
       process.exit(1);
@@ -220,6 +245,80 @@ async function deploy(options = {}) {
     let lastError = null;
     // Ensure PRIVATE_KEY is also present in the child env so vm.env* inside Forge scripts can read it
     const childEnv = Object.assign({}, process.env, { PRIVATE_KEY: privateKey });
+    // Determine contract to create: prefer compiled artifact in out/, else scan src/ for a sensible contract
+    function findContractToCreate() {
+      const outDir = path.join(process.cwd(), 'out');
+      const srcDir = path.join(process.cwd(), 'src');
+      const preferredNames = ['AgentContract', 'BasicAgent', 'DeFiAgent', 'NFTAgent', 'Agent'];
+
+      // 1) Inspect compiled artifacts in out/
+      try {
+        if (fs.existsSync(outDir)) {
+          const files = fs.readdirSync(outDir).filter(f => fs.statSync(path.join(outDir, f)).isDirectory());
+          for (const sub of files) {
+            const subdir = path.join(outDir, sub);
+            const jsons = fs.readdirSync(subdir).filter(f => f.endsWith('.json'));
+            for (const j of jsons) {
+              const name = j.replace('.json', '');
+              // Skip test artifacts and any artifact whose contract name ends with Test
+              if (/Test$/.test(name) || /\.t\.sol$/i.test(sub) || /test/i.test(sub)) continue;
+              if (preferredNames.includes(name) || /Agent/.test(name)) {
+                // Derive source file from sub (which is like '<Source>.sol')
+                const sourceFile = sub.endsWith('.sol') ? sub : (sub + '.sol');
+                return { sourceFile: path.join('src', sourceFile), contractName: name };
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // ignore and fallback
+      }
+
+      // 2) Fallback: scan src/ for .sol and pick the first contract with a preferred name or containing 'Agent'
+      try {
+        if (fs.existsSync(srcDir)) {
+          const sols = fs.readdirSync(srcDir).filter(f => f.endsWith('.sol'));
+          for (const s of sols) {
+            const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
+            const m = content.match(/contract\s+([A-Za-z0-9_]+)/g);
+            if (m) {
+              for (const mm of m) {
+                const nm = mm.split(/\s+/)[1];
+                if (preferredNames.includes(nm) || /Agent/.test(nm)) {
+                  return { sourceFile: path.join('src', s), contractName: nm };
+                }
+              }
+            }
+          }
+          // Last resort: pick first contract in first .sol
+          if (sols.length > 0) {
+            const s = sols[0];
+            const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
+            const m = content.match(/contract\s+([A-Za-z0-9_]+)/);
+            if (m && m[1]) return { sourceFile: path.join('src', s), contractName: m[1] };
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      return null;
+    }
+
+    // Respect explicit override from CLI: --contract "path:Name"
+    let contractToCreate = null;
+    if (options.contract && typeof options.contract === 'string') {
+      const parts = options.contract.split(':');
+      if (parts.length === 2) {
+        contractToCreate = { sourceFile: parts[0], contractName: parts[1] };
+      } else {
+        console.log(chalk.red('❌ Invalid --contract format. Use <path/to/File.sol>:ContractName'));
+        process.exit(1);
+      }
+    } else {
+      contractToCreate = findContractToCreate();
+    }
+
     for (; attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
         const backoff = Math.min(30000, (2 ** attempt) * 1000 + Math.floor(Math.random() * 500));
@@ -227,44 +326,51 @@ async function deploy(options = {}) {
         // eslint-disable-next-line no-await-in-loop
         await new Promise(r => setTimeout(r, backoff));
       }
-      try {
-        forgeResult = await execa(forgePath, [
-          'script',
-          'script/Deploy.s.sol',
-          '--rpc-url',
-          rpcUrl,
-          '--private-key',
-          privateKey,
-          '--broadcast',
-          '--gas-limit',
-          String(configuredGas),
-          '--legacy'
-        ], {
-          cwd: process.cwd(),
-          stdio: 'pipe',
-          env: childEnv
-        });
-        // If we got here, forge ran. Break retry loop and analyze output.
-        lastError = null;
-        break;
-      } catch (err) {
-        // capture error and decide whether to retry
-        forgeResult = { stdout: err.stdout || '', stderr: err.stderr || '' };
-        const combined = (forgeResult.stdout || '') + (forgeResult.stderr || '');
-        // If Forge explicitly reports Transaction Failure, that's an on-chain revert — don't retry
-        if (combined.includes('Transaction Failure') || combined.includes('vm.envUint')) {
-          // keep forgeResult for later analysis
+        try {
+          if (!contractToCreate) {
+            throw new Error('Could not determine contract to create. Please run `forge build` first or ensure src/ contains a contract.');
+          }
+          const contractArg = `${contractToCreate.sourceFile}:${contractToCreate.contractName}`;
+          console.log(chalk.gray(`[DEBUG] Using forge create target: ${contractArg}`));
+          // Build forge create args. Do NOT force legacy by default — prefer EIP-1559.
+          const args = [
+            'create',
+            contractArg,
+            '--rpc-url', rpcUrl,
+            '--private-key', privateKey
+          ];
+          if (options.broadcast) args.push('--broadcast');
+          // gas limit
+          args.push('--gas-limit', String(configuredGas));
+          // Respect explicit legacy opt-in
+          const useLegacy = (options && options.legacy === true) || (process.env.SOMNIA_FORCE_LEGACY === 'true');
+          if (useLegacy) args.push('--legacy');
+          // Support optional EIP-1559 parameters (best-effort)
+          if (options && options.maxFeePerGas) args.push('--max-fee-per-gas', String(options.maxFeePerGas));
+          if (options && options.maxPriorityFeePerGas) args.push('--max-priority-fee-per-gas', String(options.maxPriorityFeePerGas));
+          // If constructor args were provided via options.constructorArgs (array), append them
+          if (options.constructorArgs && Array.isArray(options.constructorArgs) && options.constructorArgs.length) {
+            args.push('--constructor-args', ...options.constructorArgs.map(String));
+          }
+
+          forgeResult = await execa(forgePath, args, {
+            cwd: process.cwd(),
+            stdio: 'pipe',
+            env: childEnv
+          });
+          lastError = null;
           break;
+        } catch (err) {
+          forgeResult = { stdout: err.stdout || '', stderr: err.stderr || '' };
+          const combined = (forgeResult.stdout || '') + (forgeResult.stderr || '');
+          if (combined.includes('Transaction Failure') || combined.includes('vm.envUint')) {
+            break;
+          }
+          if (attempt === maxRetries) break;
         }
-        // For other errors (network, RPC, spawn failure), we'll retry until attempts exhausted
-        if (attempt === maxRetries) {
-          break;
-        }
-        // otherwise loop will retry
-      }
     }
 
-    const forgeOutput = (forgeResult.stdout || '') + (forgeResult.stderr || '');
+  const forgeOutput = (forgeResult.stdout || '') + (forgeResult.stderr || '');
     let forgeFailed = false;
     if (forgeOutput.includes('Transaction Failure')) {
       forgeFailed = true;
@@ -276,30 +382,60 @@ async function deploy(options = {}) {
 
   console.log(chalk.green('✅ Forge script execution completed (check network status).'));
 
-    // Find chain ID folder dynamically from broadcast
-    const broadcastBase = path.join(process.cwd(), 'broadcast', 'Deploy.s.sol');
-    let broadcastDir = broadcastBase;
-    try {
-      const chainIds = fs.readdirSync(broadcastBase).filter(f => fs.statSync(path.join(broadcastBase, f)).isDirectory());
-      console.log('[DEBUG] Found chain ID folders:', chainIds);
-      if (chainIds.includes('11155111')) {
-        broadcastDir = path.join(broadcastBase, '11155111');
-        console.log('[DEBUG] Using Sepolia broadcast directory:', broadcastDir);
-      } else if (chainIds.length) {
-        broadcastDir = path.join(broadcastBase, chainIds[0]);
-        console.log('[DEBUG] Using first available broadcast directory:', broadcastDir);
-      } else {
-        console.log('[DEBUG] No chain ID folders found, using base broadcast directory:', broadcastDir);
+    // If this was a dry-run (no --broadcast), print a short summary of the prepared transaction
+    if (!options.broadcast) {
+      console.log(chalk.yellow('\n⚠️  Dry run (no --broadcast): transaction prepared but NOT sent to network.'));
+      if (forgeOutput && forgeOutput.length) {
+        // Print first ~2000 characters to avoid huge output
+        const summary = forgeOutput.slice(0, 2000);
+        console.log(chalk.gray('\n--- Forge create output (truncated) ---'));
+        console.log(summary);
+        if (forgeOutput.length > 2000) console.log(chalk.gray('--- (truncated) ---'));
       }
-    } catch (err) {
-      console.log('[DEBUG] Error reading broadcastBase:', err);
+      console.log(chalk.cyan('\nRun with --broadcast to actually send the transaction (requires account balance on Somnia testnet).'));
     }
-    const contractAddress = await extractContractAddress(broadcastDir);
+
+    // Locate any run-latest.json produced by forge (search broadcast/ recursively)
+    function findBroadcastRunLatest() {
+      const bRoot = path.join(process.cwd(), 'broadcast');
+      if (!fs.existsSync(bRoot)) return null;
+      const stack = [bRoot];
+      while (stack.length) {
+        const cur = stack.pop();
+        try {
+          const children = fs.readdirSync(cur);
+          for (const c of children) {
+            const full = path.join(cur, c);
+            try {
+              const stat = fs.statSync(full);
+              if (stat.isDirectory()) stack.push(full);
+              else if (stat.isFile() && c === 'run-latest.json') {
+                return cur; // directory containing run-latest.json
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+        } catch (e) {
+          // ignore unreadable dirs
+        }
+      }
+      return null;
+    }
+
+    const foundBroadcastDir = findBroadcastRunLatest();
+    let contractAddress = null;
+    if (foundBroadcastDir) {
+      console.log('[DEBUG] Found broadcast run-latest.json at:', foundBroadcastDir);
+      contractAddress = await extractContractAddress(foundBroadcastDir);
+    } else {
+      console.log('[DEBUG] No broadcast run-latest.json found under broadcast/');
+    }
   console.log('[DEBUG] Extracted contractAddress:', contractAddress);
 
   // If no contract address found, check for out-of-gas indications and offer/attempt retry
   if (!contractAddress) {
-    const gasInfo = await readBroadcastGasInfo(broadcastDir);
+    const gasInfo = await readBroadcastGasInfo(foundBroadcastDir);
     if (gasInfo && gasInfo.infos && gasInfo.infos.length) {
       // Find any entry where gasUsed and gasLimit are equal (possible OOG)
       const oog = gasInfo.infos.find(i => i && i.gasUsed && i.gasLimit && Number(i.gasUsed) === Number(i.gasLimit));
@@ -314,18 +450,21 @@ async function deploy(options = {}) {
         if (increasedGas > configuredGas) {
           console.log(chalk.cyan(`\n🔁 Attempting one automatic retry with increased gas limit: ${increasedGas}...`));
           try {
-            const retryResult = await execa(forgePath, [
-              'script',
-              'script/Deploy.s.sol',
-              '--rpc-url',
-              rpcUrl,
-              '--private-key',
-              privateKey,
-              '--broadcast',
-              '--gas-limit',
-              String(increasedGas),
-              '--legacy'
-            ], {
+            // Retry using forge create (Somnia-compatible), target same contract
+            if (!contractToCreate) {
+              throw new Error('Retry aborted: no contract target available');
+            }
+            const contractArg = `${contractToCreate.sourceFile}:${contractToCreate.contractName}`;
+            const retryArgs = [
+              'create',
+              contractArg,
+              '--rpc-url', rpcUrl,
+              '--private-key', privateKey,
+              '--legacy',
+              '--gas-limit', String(increasedGas)
+            ];
+            if (options.broadcast) retryArgs.push('--broadcast');
+            const retryResult = await execa(forgePath, retryArgs, {
               cwd: process.cwd(),
               stdio: 'pipe',
               env: Object.assign({}, childEnv, { SOMNIA_GAS_LIMIT: String(increasedGas) })
@@ -334,8 +473,10 @@ async function deploy(options = {}) {
             if (retryOutput.includes('Transaction Failure')) {
               console.log(chalk.red('❌ Retry also reported a Transaction Failure.'));
             }
-            // re-evaluate broadcast artifacts after retry
-            const retryAddress = await extractContractAddress(broadcastDir);
+            // re-evaluate broadcast artifacts after retry (if broadcast was used)
+            // Re-scan broadcast directory after retry and extract address if available
+            const retryFound = findBroadcastRunLatest();
+            const retryAddress = retryFound ? await extractContractAddress(retryFound) : null;
             if (retryAddress) {
               console.log(chalk.green(`✅ Retry succeeded; contract deployed at: ${retryAddress}`));
               // Save deployment info
@@ -387,45 +528,125 @@ async function deploy(options = {}) {
       );
       console.log(chalk.gray('\n📝 Deployment info saved to .deployment.json'));
     } else {
-      // Final fallback: parse run-latest.json directly
+      // Final fallback: try to parse run-latest.json directly from any discovered broadcast directory
       try {
-        const latestFile = path.join(broadcastDir, 'run-latest.json');
-        if (fs.existsSync(latestFile)) {
-          const broadcastData = JSON.parse(fs.readFileSync(latestFile, 'utf8'));
-          let fallbackAddress = null;
-          if (broadcastData.receipts && broadcastData.receipts.length > 0 && broadcastData.receipts[0].contractAddress) {
-            fallbackAddress = broadcastData.receipts[0].contractAddress;
-          } else if (broadcastData.transactions && broadcastData.transactions.length > 0 && broadcastData.transactions[0].contractAddress) {
-            fallbackAddress = broadcastData.transactions[0].contractAddress;
-          }
-          if (fallbackAddress) {
-            console.log(chalk.bold(`[FALLBACK] 📍 Contract deployed at: ${fallbackAddress}`));
-            // Save deployment info (fallback)
-            const deploymentInfo = {
-              address: fallbackAddress,
-              network: 'somnia-testnet',
-              timestamp: new Date().toISOString(),
-              verified: !forgeFailed && (options.verify !== false),
-              txStatus: forgeFailed ? 'failed' : 'success',
-              wallet: walletAddress
-            };
-            fs.writeFileSync(
-              path.join(process.cwd(), '.deployment.json'),
-              JSON.stringify(deploymentInfo, null, 2)
-            );
-            console.log(chalk.gray('\n📝 Deployment info saved to .deployment.json'));
-            if (forgeFailed) {
-              console.log(chalk.yellow('⚠️  Note: The transaction was reported as failed by Forge; deployment info may be incomplete.'));
+        if (foundBroadcastDir) {
+          const latestFile = path.join(foundBroadcastDir, 'run-latest.json');
+          if (fs.existsSync(latestFile)) {
+            const broadcastData = JSON.parse(fs.readFileSync(latestFile, 'utf8'));
+            let fallbackAddress = null;
+            if (broadcastData.receipts && broadcastData.receipts.length > 0 && broadcastData.receipts[0].contractAddress) {
+              fallbackAddress = broadcastData.receipts[0].contractAddress;
+            } else if (broadcastData.transactions && broadcastData.transactions.length > 0 && broadcastData.transactions[0].contractAddress) {
+              fallbackAddress = broadcastData.transactions[0].contractAddress;
+            }
+            if (fallbackAddress) {
+              console.log(chalk.bold(`[FALLBACK] 📍 Contract deployed at: ${fallbackAddress}`));
+              // Save deployment info (fallback)
+              const deploymentInfo = {
+                address: fallbackAddress,
+                network: 'somnia-testnet',
+                timestamp: new Date().toISOString(),
+                verified: !forgeFailed && (options.verify !== false),
+                txStatus: forgeFailed ? 'failed' : 'success',
+                wallet: walletAddress
+              };
+              fs.writeFileSync(
+                path.join(process.cwd(), '.deployment.json'),
+                JSON.stringify(deploymentInfo, null, 2)
+              );
+              console.log(chalk.gray('\n📝 Deployment info saved to .deployment.json'));
+              if (forgeFailed) {
+                console.log(chalk.yellow('⚠️  Note: The transaction was reported as failed by Forge; deployment info may be incomplete.'));
+              }
+            } else {
+              console.log(chalk.yellow('⚠️  Could not extract contract address from broadcast logs.'));
+              console.log(chalk.gray('This might be because the transaction failed on the network and no address was emitted.'));
             }
           } else {
-            console.log(chalk.yellow('⚠️  Could not extract contract address from broadcast logs.'));
-            console.log(chalk.gray('This might be because the transaction failed on the network and no address was emitted.'));
+            console.log(chalk.yellow('⚠️  run-latest.json not found in broadcast directory.'));
           }
         } else {
           console.log(chalk.yellow('⚠️  run-latest.json not found in broadcast directory.'));
         }
       } catch (fallbackErr) {
         console.log(chalk.red('❌ Fallback error extracting contract address:', fallbackErr.message));
+      }
+    }
+
+    // FINAL fallback: if we still don't have a contractAddress, try parsing Forge stdout/stderr
+    if (!contractAddress) {
+      try {
+        const combinedOut = (forgeResult.stdout || '') + '\n' + (forgeResult.stderr || '');
+        // Look for lines like: "Deployed to: 0x..." and "Transaction hash: 0x..."
+        const addrMatch = combinedOut.match(/Deployed to:\s*(0x[0-9a-fA-F]{40})/i);
+        const txMatch = combinedOut.match(/Transaction hash:\s*(0x[0-9a-fA-F]{64})/i);
+        if (addrMatch) contractAddress = addrMatch[1];
+        const txHash = txMatch ? txMatch[1] : null;
+        if (contractAddress) {
+          console.log(chalk.green(`✅ Parsed deployed address from Forge output: ${contractAddress}`));
+          const deploymentInfo = {
+            address: contractAddress,
+            txHash: txHash,
+            network: 'somnia-testnet',
+            timestamp: new Date().toISOString(),
+            verified: !forgeFailed && (options.verify !== false),
+            txStatus: forgeFailed ? 'failed' : 'success',
+            wallet: walletAddress
+          };
+          fs.writeFileSync(
+            path.join(process.cwd(), '.deployment.json'),
+            JSON.stringify(deploymentInfo, null, 2)
+          );
+          console.log(chalk.gray('\n📝 Deployment info saved to .deployment.json'));
+        } else if (txMatch) {
+          // If we at least have tx hash, save it so the user can inspect receipt
+          const deploymentInfo = {
+            address: null,
+            txHash: txMatch[1],
+            network: 'somnia-testnet',
+            timestamp: new Date().toISOString(),
+            verified: false,
+            txStatus: forgeFailed ? 'failed' : 'unknown',
+            wallet: walletAddress
+          };
+          fs.writeFileSync(
+            path.join(process.cwd(), '.deployment.json'),
+            JSON.stringify(deploymentInfo, null, 2)
+          );
+          console.log(chalk.gray('\n📝 Deployment tx saved to .deployment.json (no contract address found)'));
+          // Try to fetch the receipt via `cast receipt` to provide helpful diagnostics (if cast available)
+          try {
+            const castPath = 'cast';
+            const receiptRes = await execa(castPath, ['receipt', txMatch[1], '--rpc-url', rpcUrl], { stdio: 'pipe' });
+            const receiptOut = (receiptRes.stdout || '').trim();
+            if (receiptOut) {
+              console.log(chalk.gray('\n[DEBUG] Remote receipt:\n') + receiptOut);
+              // Basic parse: look for status and gasUsed
+              const statusMatch = receiptOut.match(/status\s+([0-9]+)/i);
+              const gasUsedMatch = receiptOut.match(/gasUsed\s+([0-9]+)/i);
+              const gasLimitGuess = configuredGas;
+              const statusVal = statusMatch ? Number(statusMatch[1]) : null;
+              const gasUsedVal = gasUsedMatch ? Number(gasUsedMatch[1]) : null;
+              if (statusVal === 0) {
+                console.log(chalk.yellow('\n⚠️  Transaction status: FAILED (status 0)'));
+                if (gasUsedVal && gasLimitGuess && gasUsedVal === gasLimitGuess) {
+                  console.log(chalk.yellow('ℹ️  The transaction consumed the full provided gas (gasUsed == gasLimit). This often indicates Out-Of-Gas during deployment or constructor revert.'));
+                  console.log(chalk.cyan('Suggestion: increase the gas limit (e.g. SOMNIA_GAS_LIMIT=5000000 or 13000000) and retry forge create with a higher --gas-limit.'));
+                } else {
+                  console.log(chalk.cyan('Suggestion: inspect contract constructor and logs for revert reasons.'));
+                }
+              } else if (statusVal === 1) {
+                console.log(chalk.green('✅ Transaction succeeded according to receipt.'));
+              }
+            }
+          } catch (castErr) {
+            // cast not available or rpc failed — ignore silently but inform user
+            console.log(chalk.gray('\n[DEBUG] Could not fetch receipt with `cast` (optional tool):'), castErr.message || castErr);
+          }
+        }
+      } catch (parseErr) {
+        console.log(chalk.yellow('⚠️  Could not parse Forge output for deployment info.'));
       }
     }
   } catch (error) {
@@ -438,3 +659,68 @@ async function deploy(options = {}) {
 }
 
 module.exports = deploy;
+
+// Post-deploy helper: try to fetch canonical receipt with `cast` and update .deployment.json accordingly
+async function _postProcessReceipt(cwd, rpcUrl) {
+  try {
+    const deploymentPath = path.join(cwd, '.deployment.json');
+    if (!fs.existsSync(deploymentPath)) return;
+    const deployment = JSON.parse(fs.readFileSync(deploymentPath, 'utf8'));
+    let txHash = deployment.txHash || null;
+    // If no txHash in deployment file, try to find it in broadcast run-latest.json
+    if (!txHash) {
+      const bRoot = path.join(cwd, 'broadcast');
+      if (fs.existsSync(bRoot)) {
+        // search for run-latest.json
+        const stack = [bRoot];
+        while (stack.length && !txHash) {
+          const cur = stack.pop();
+          const children = fs.readdirSync(cur);
+          for (const c of children) {
+            const full = path.join(cur, c);
+            const stat = fs.statSync(full);
+            if (stat.isDirectory()) stack.push(full);
+            else if (stat.isFile() && c === 'run-latest.json') {
+              const b = JSON.parse(fs.readFileSync(full, 'utf8'));
+              if (b && b.transactions && Array.isArray(b.transactions) && b.transactions.length > 0) {
+                txHash = b.transactions[0].hash || b.transactions[0].transactionHash || null;
+                if (txHash) break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (!txHash) return;
+
+    // Use cast to fetch receipt
+    try {
+      const castPath = 'cast';
+      const receiptRes = await execa(castPath, ['receipt', txHash, '--rpc-url', rpcUrl], { stdio: 'pipe' });
+      const receiptOut = (receiptRes.stdout || '').trim();
+      if (receiptOut) {
+        // Basic parse for status and gasUsed
+        const statusMatch = receiptOut.match(/status\s+([0-9]+)/i);
+        const gasUsedMatch = receiptOut.match(/gasUsed\s+([0-9]+)/i);
+        const contractAddrMatch = receiptOut.match(/contractAddress\s+(0x[0-9a-fA-F]{40})/i);
+        const statusVal = statusMatch ? Number(statusMatch[1]) : null;
+        const gasUsedVal = gasUsedMatch ? Number(gasUsedMatch[1]) : null;
+        if (statusVal === 1) deployment.txStatus = 'success';
+        else if (statusVal === 0) deployment.txStatus = 'failed';
+        if (gasUsedVal) deployment.gasUsed = gasUsedVal;
+        if (contractAddrMatch && contractAddrMatch[1]) deployment.address = deployment.address || contractAddrMatch[1];
+        deployment.receipt = receiptOut;
+        fs.writeFileSync(deploymentPath, JSON.stringify(deployment, null, 2));
+        console.log(chalk.gray('\n[DEBUG] Updated .deployment.json with on-chain receipt status'));
+      }
+    } catch (e) {
+      // ignore if cast is not available or rpc failed
+      // but surface a short debug note
+      console.log(chalk.gray('[DEBUG] Could not fetch receipt via cast during post-processing:'), e.message || e);
+    }
+  } catch (e) {
+    // best-effort only
+    console.log(chalk.gray('[DEBUG] Post-process receipt failed:'), e.message || e);
+  }
+}
