@@ -97,6 +97,26 @@ jobs:
               echo "No successful broadcasts detected in run-latest.json. Forge exit code: $rc"
               echo "Full broadcast file:"
               jq '.' "$rl" || true
+              # Extra diagnostics: for each transaction hash found, query on-chain receipt and tx
+              echo "\n--- Running cast diagnostics for transactions in run-latest.json ---"
+              txs=$(jq -r '((.transactions // [])[]?.hash) // empty' "$rl" | sort -u) || true
+              # also include receipt.transactionHash if present
+              txs_from_receipts=$(jq -r '((.receipts // [])[]?.transactionHash) // empty' "$rl" | sort -u) || true
+              for h in $txs $txs_from_receipts; do
+                if [ -z "$h" ]; then
+                  continue
+                fi
+                echo "\n--- Transaction: $h ---"
+                # cast receipt prints status and block info
+                if command -v cast >/dev/null 2>&1; then
+                  echo "cast receipt $h --rpc-url $SOMNIA_RPC_URL"
+                  cast receipt "$h" --rpc-url "$SOMNIA_RPC_URL" || true
+                  echo "cast tx $h --rpc-url $SOMNIA_RPC_URL"
+                  cast tx "$h" --rpc-url "$SOMNIA_RPC_URL" || true
+                else
+                  echo "cast not available in PATH; skipping cast diagnostics"
+                fi
+              done
               # Exit with original rc (non-zero) to indicate CI failure
               exit $rc
             fi
