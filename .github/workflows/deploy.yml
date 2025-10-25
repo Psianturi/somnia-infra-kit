@@ -28,10 +28,12 @@ jobs:
       - name: Install Forge Dependencies
         run: |
           cd agent-template
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
           git init
           git add .
           git commit -m "Initial commit" || true
-          forge install foundry-rs/forge-std --no-commit || echo 'Forge install completed'
+          forge install foundry-rs/forge-std || echo 'Forge install completed'
           ls -la lib/ || echo 'No lib directory'
 
       - name: "Build Solidity contracts"
