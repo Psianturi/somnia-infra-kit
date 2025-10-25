@@ -210,7 +210,9 @@ async function init(projectName, templateType = null, useWizard = false) {
     console.log('📦 Installing dependencies...');
     try {
       const { execSync } = require('child_process');
-      execSync('/home/posmproject/.foundry/bin/forge install foundry-rs/forge-std', {
+      // Use FOUNDRY_FORGE env var if provided, otherwise rely on forge in PATH
+      const foundryForge = process.env.FOUNDRY_FORGE || 'forge';
+      execSync(`${foundryForge} install foundry-rs/forge-std`, {
         cwd: projectDir,
         stdio: 'pipe'
       });

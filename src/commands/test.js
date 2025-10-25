@@ -21,14 +21,9 @@ async function test() {
 
     console.log('🧪 Running tests in local sandbox...');
 
-    // Find forge binary
-    let forgePath = 'forge';
-    const possiblePaths = [
-      '/home/posmproject/.foundry/bin/forge',
-      '/usr/local/bin/forge',
-      'forge'
-    ];
-    
+    // Find forge binary: prefer FOUNDRY_FORGE env var, then common locations, then PATH
+    let forgePath = process.env.FOUNDRY_FORGE || 'forge';
+    const possiblePaths = [process.env.FOUNDRY_FORGE, '/usr/local/bin/forge', 'forge'].filter(Boolean);
     for (const p of possiblePaths) {
       try {
         await execa(p, ['--version'], { stdio: 'pipe' });

@@ -20,7 +20,8 @@ function postProcess(code, features) {
 
 function applyASTFixes(code) {
   // AST-based fixes (if parsing succeeds)
-  // TODO: Implement AST-based fixes if needed
+  // Placeholder for AST-based fixes. Currently no automatic AST transformations
+  // are applied; regex fallbacks handle common issues.
   return code;
 }
 

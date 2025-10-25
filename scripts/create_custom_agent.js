@@ -3,7 +3,9 @@ const fs = require('fs-extra');
 const { createCustomProject } = require('../src/commands/wizard');
 
 async function main() {
-  const targetDir = '/mnt/d/POSMPROJECT/BLOCKCHAIN/Hackathon/SOMNIA/somnia-agents/MyComplexAgent';
+  // Target directory can be provided as the first CLI arg, via TARGET_DIR env,
+  // or will default to a workspace-relative 'somnia-agents/MyComplexAgent'.
+  const targetDir = process.argv[2] || process.env.TARGET_DIR || path.join(process.cwd(), 'somnia-agents', 'MyComplexAgent');
   // ensure parent exists
   await fs.ensureDir(path.dirname(targetDir));
 
