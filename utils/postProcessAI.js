@@ -8,9 +8,9 @@ const { parse } = require('solidity-parser-antlr');
  */
 function postProcess(code, features) {
   try {
-    // Try AST-based fixes first
-    const ast = parse(code);
-    code = applyASTFixes(code, features);
+    // Try AST-based fixes first (we only need to ensure parse succeeds)
+    parse(code);
+    code = applyASTFixes(code);
   } catch (error) {
     console.warn('AST parsing failed, falling back to regex fixes:', error.message);
     code = applyRegexFixes(code, features);
@@ -18,7 +18,7 @@ function postProcess(code, features) {
   return code;
 }
 
-function applyASTFixes(code, features) {
+function applyASTFixes(code) {
   // AST-based fixes (if parsing succeeds)
   // TODO: Implement AST-based fixes if needed
   return code;

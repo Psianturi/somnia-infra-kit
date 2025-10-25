@@ -23,12 +23,15 @@ const _preserveEnv = {
 function findEnvFile(startDir) {
   let dir = path.resolve(startDir || process.cwd());
   const root = path.parse(dir).root;
-  while (true) {
+  // Walk up from startDir to filesystem root looking for a .env file.
+  while (dir !== root) {
     const candidate = path.join(dir, '.env');
     if (fs.existsSync(candidate)) return candidate;
-    if (dir === root) break;
     dir = path.dirname(dir);
   }
+  // final check at root
+  const rootCandidate = path.join(root, '.env');
+  if (fs.existsSync(rootCandidate)) return rootCandidate;
   return null;
 }
 
@@ -130,6 +133,93 @@ async function readBroadcastGasInfo(broadcastDir) {
     }
   } catch (error) {
     // ignore
+  }
+  return null;
+}
+
+// Helper: find a sensible contract target by inspecting `out/` or `src/`.
+function findContractToCreate(baseDir = process.cwd()) {
+  const outDir = path.join(baseDir, 'out');
+  const srcDir = path.join(baseDir, 'src');
+  const preferredNames = ['AgentContract', 'BasicAgent', 'DeFiAgent', 'NFTAgent', 'Agent'];
+
+  // 1) Inspect compiled artifacts in out/
+  try {
+    if (fs.existsSync(outDir)) {
+      const files = fs.readdirSync(outDir).filter(f => fs.statSync(path.join(outDir, f)).isDirectory());
+      for (const sub of files) {
+        const subdir = path.join(outDir, sub);
+        const jsons = fs.readdirSync(subdir).filter(f => f.endsWith('.json'));
+        for (const j of jsons) {
+          const name = j.replace('.json', '');
+          // Skip test artifacts and any artifact whose contract name ends with Test
+          if (/Test$/.test(name) || /\.t\.sol$/i.test(sub) || /test/i.test(sub)) continue;
+          if (preferredNames.includes(name) || /Agent/.test(name)) {
+            const sourceFile = sub.endsWith('.sol') ? sub : (sub + '.sol');
+            return { sourceFile: path.join('src', sourceFile), contractName: name };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // ignore and fallback
+  }
+
+  // 2) Fallback: scan src/ for .sol and pick the first contract with a preferred name or containing 'Agent'
+  try {
+    if (fs.existsSync(srcDir)) {
+      const sols = fs.readdirSync(srcDir).filter(f => f.endsWith('.sol'));
+      for (const s of sols) {
+        const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
+        const m = content.match(/contract\s+([A-Za-z0-9_]+)/g);
+        if (m) {
+          for (const mm of m) {
+            const nm = mm.split(/\s+/)[1];
+            if (preferredNames.includes(nm) || /Agent/.test(nm)) {
+              return { sourceFile: path.join('src', s), contractName: nm };
+            }
+          }
+        }
+      }
+      // Last resort: pick first contract in first .sol
+      if (sols.length > 0) {
+        const s = sols[0];
+        const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
+        const m = content.match(/contract\s+([A-Za-z0-9_]+)/);
+        if (m && m[1]) return { sourceFile: path.join('src', s), contractName: m[1] };
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return null;
+}
+
+// Helper: find broadcast run-latest.json directory by scanning broadcast/
+function findBroadcastRunLatest(baseDir = process.cwd()) {
+  const bRoot = path.join(baseDir, 'broadcast');
+  if (!fs.existsSync(bRoot)) return null;
+  const stack = [bRoot];
+  while (stack.length) {
+    const cur = stack.pop();
+    try {
+      const children = fs.readdirSync(cur);
+      for (const c of children) {
+        const full = path.join(cur, c);
+        try {
+          const stat = fs.statSync(full);
+          if (stat.isDirectory()) stack.push(full);
+          else if (stat.isFile() && c === 'run-latest.json') {
+            return cur; // directory containing run-latest.json
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      // ignore unreadable dirs
+    }
   }
   return null;
 }
@@ -242,68 +332,9 @@ async function deploy(options = {}) {
   const defaultHighGas = 13000000; // safe high default (approx block gas limit)
   const configuredGas = Number.isFinite(envGas) && envGas > 0 ? envGas : (typeof options.gasLimit === 'number' ? options.gasLimit : defaultHighGas);
     let attempt = 0;
-    let lastError = null;
     // Ensure PRIVATE_KEY is also present in the child env so vm.env* inside Forge scripts can read it
     const childEnv = Object.assign({}, process.env, { PRIVATE_KEY: privateKey });
-    // Determine contract to create: prefer compiled artifact in out/, else scan src/ for a sensible contract
-    function findContractToCreate() {
-      const outDir = path.join(process.cwd(), 'out');
-      const srcDir = path.join(process.cwd(), 'src');
-      const preferredNames = ['AgentContract', 'BasicAgent', 'DeFiAgent', 'NFTAgent', 'Agent'];
-
-      // 1) Inspect compiled artifacts in out/
-      try {
-        if (fs.existsSync(outDir)) {
-          const files = fs.readdirSync(outDir).filter(f => fs.statSync(path.join(outDir, f)).isDirectory());
-          for (const sub of files) {
-            const subdir = path.join(outDir, sub);
-            const jsons = fs.readdirSync(subdir).filter(f => f.endsWith('.json'));
-            for (const j of jsons) {
-              const name = j.replace('.json', '');
-              // Skip test artifacts and any artifact whose contract name ends with Test
-              if (/Test$/.test(name) || /\.t\.sol$/i.test(sub) || /test/i.test(sub)) continue;
-              if (preferredNames.includes(name) || /Agent/.test(name)) {
-                // Derive source file from sub (which is like '<Source>.sol')
-                const sourceFile = sub.endsWith('.sol') ? sub : (sub + '.sol');
-                return { sourceFile: path.join('src', sourceFile), contractName: name };
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // ignore and fallback
-      }
-
-      // 2) Fallback: scan src/ for .sol and pick the first contract with a preferred name or containing 'Agent'
-      try {
-        if (fs.existsSync(srcDir)) {
-          const sols = fs.readdirSync(srcDir).filter(f => f.endsWith('.sol'));
-          for (const s of sols) {
-            const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
-            const m = content.match(/contract\s+([A-Za-z0-9_]+)/g);
-            if (m) {
-              for (const mm of m) {
-                const nm = mm.split(/\s+/)[1];
-                if (preferredNames.includes(nm) || /Agent/.test(nm)) {
-                  return { sourceFile: path.join('src', s), contractName: nm };
-                }
-              }
-            }
-          }
-          // Last resort: pick first contract in first .sol
-          if (sols.length > 0) {
-            const s = sols[0];
-            const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
-            const m = content.match(/contract\s+([A-Za-z0-9_]+)/);
-            if (m && m[1]) return { sourceFile: path.join('src', s), contractName: m[1] };
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-
-      return null;
-    }
+    // Determine contract to create: use module-level helper `findContractToCreate`
 
     // Respect explicit override from CLI: --contract "path:Name"
     let contractToCreate = null;
@@ -358,7 +389,6 @@ async function deploy(options = {}) {
             stdio: 'pipe',
             env: childEnv
           });
-          lastError = null;
           break;
         } catch (err) {
           forgeResult = { stdout: err.stdout || '', stderr: err.stderr || '' };
@@ -396,33 +426,6 @@ async function deploy(options = {}) {
     }
 
     // Locate any run-latest.json produced by forge (search broadcast/ recursively)
-    function findBroadcastRunLatest() {
-      const bRoot = path.join(process.cwd(), 'broadcast');
-      if (!fs.existsSync(bRoot)) return null;
-      const stack = [bRoot];
-      while (stack.length) {
-        const cur = stack.pop();
-        try {
-          const children = fs.readdirSync(cur);
-          for (const c of children) {
-            const full = path.join(cur, c);
-            try {
-              const stat = fs.statSync(full);
-              if (stat.isDirectory()) stack.push(full);
-              else if (stat.isFile() && c === 'run-latest.json') {
-                return cur; // directory containing run-latest.json
-              }
-            } catch (e) {
-              // ignore
-            }
-          }
-        } catch (e) {
-          // ignore unreadable dirs
-        }
-      }
-      return null;
-    }
-
     const foundBroadcastDir = findBroadcastRunLatest();
     let contractAddress = null;
     if (foundBroadcastDir) {
@@ -658,8 +661,6 @@ async function deploy(options = {}) {
   }
 }
 
-module.exports = deploy;
-
 // Post-deploy helper: try to fetch canonical receipt with `cast` and update .deployment.json accordingly
 async function _postProcessReceipt(cwd, rpcUrl) {
   try {
@@ -724,3 +725,7 @@ async function _postProcessReceipt(cwd, rpcUrl) {
     console.log(chalk.gray('[DEBUG] Post-process receipt failed:'), e.message || e);
   }
 }
+
+// Export main deploy function and expose post-process helper as a property
+module.exports = deploy;
+module.exports._postProcessReceipt = _postProcessReceipt;
