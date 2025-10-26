@@ -78,13 +78,13 @@ jobs:
           echo "Running forge create..."
           # Run forge create but don't let a non-zero exit immediately stop our diagnostics
           set +e
-          forge create src/AgentContract.sol:AgentContract --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast --gas-limit 5000000 --legacy
+          forge create src/AgentContract.sol:AgentContract --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast --gas-limit 13000000 --legacy
           rc=$?
           set -e
 
-          # Find most recent run-latest.json under broadcast/
-          rl=$(find broadcast -type f -name run-latest.json -print -quit || true)
-          if [ -n "$rl" ] && [ -f "$rl" ]; then
+          # forge create doesn't generate broadcast directory, extract info from output
+          echo "Forge create completed with exit code: $rc"
+          if [ $rc -eq 0 ]; then
             echo "Found broadcast artifact: $rl"
             echo "--- broadcast content (truncated) ---"
             head -n 200 "$rl" || true
