@@ -75,10 +75,10 @@ jobs:
           echo "Installing jq for JSON inspection..."
           sudo apt-get update -y && sudo apt-get install -y jq || true
 
-          echo "Running forge script..."
-          # Run forge script but don't let a non-zero exit immediately stop our diagnostics
+          echo "Running forge create..."
+          # Run forge create but don't let a non-zero exit immediately stop our diagnostics
           set +e
-          forge script script/Deploy.s.sol:Deploy --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast --verify --root .
+          forge create src/AgentContract.sol:AgentContract --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast --gas-limit 5000000 --legacy
           rc=$?
           set -e
 
