@@ -19,6 +19,15 @@ function validateProjectName(name) {
   if (name.length > 50) {
     throw new Error('Project name must be less than 50 characters');
   }
+  // Prevent path traversal
+  if (name.includes('..') || name.includes('/') || name.includes('\\')) {
+    throw new Error('Project name cannot contain path traversal characters');
+  }
+  // Prevent reserved names
+  const reserved = ['con', 'prn', 'aux', 'nul', 'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9', 'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9'];
+  if (reserved.includes(name.toLowerCase())) {
+    throw new Error('Project name cannot be a reserved system name');
+  }
 }
 
 const TEMPLATES = {
@@ -117,21 +126,25 @@ async function init(projectName, templateType = null, useWizard = false) {
       templateType = await selectTemplate();
     }
     
-    // Handle both local and global installation paths
+    // Handle both local and global installation paths with security validation
     const getTemplatePath = (templateName) => {
-      // For local development: src/commands -> root
-      const localPath = path.join(__dirname, '..', '..', templateName);
-      // For npm installation: node_modules/somnia-ai-agent-cli/src/commands -> node_modules/somnia-ai-agent-cli
-      const npmPath = path.join(__dirname, '..', '..', templateName);
-      
-      if (fs.existsSync(localPath)) {
-        return localPath;
-      } else if (fs.existsSync(npmPath)) {
-        return npmPath;
-      } else {
-        // Fallback
-        return path.join(__dirname, '..', '..', templateName);
+      // Validate template name to prevent path traversal
+      if (!templateName || typeof templateName !== 'string') {
+        throw new Error('Invalid template name');
       }
+      if (templateName.includes('..') || templateName.includes('/') || templateName.includes('\\')) {
+        throw new Error('Template name contains invalid characters');
+      }
+      
+      const basePath = path.resolve(__dirname, '..', '..');
+      const templatePath = path.resolve(basePath, templateName);
+      
+      // Ensure the resolved path is within the expected base directory
+      if (!templatePath.startsWith(basePath)) {
+        throw new Error('Template path is outside allowed directory');
+      }
+      
+      return templatePath;
     };
     
     // If user selected Other, route into the custom-agent flow

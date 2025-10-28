@@ -6,13 +6,16 @@ import "../src/AgentContract.sol";
 
 contract Deploy is Script {
     function run() external {
-        vm.startBroadcast();
+        uint256 pk = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(pk);
 
-        // Deploy AgentContract with deployer as owner
-        AgentContract agent = new AgentContract(msg.sender);
+        // Deploy AgentContract with deployer as owner (wrap to catch revert)
+        try new AgentContract(msg.sender) returns (AgentContract agent) {
+            console.log("AgentContract deployed at:", address(agent));
+        } catch {
+            console.log("AgentContract deployment reverted");
+        }
 
         vm.stopBroadcast();
-
-        console.log("AgentContract deployed at:", address(agent));
     }
 }

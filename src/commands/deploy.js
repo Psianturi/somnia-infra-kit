@@ -7,6 +7,20 @@ const execa = (() => {
     return require('execa');
   }
 })();
+const inquirer = (() => {
+  try { return require('inquirer'); } catch {
+    console.error('inquirer not found. Installing...');
+    require('child_process').execSync('npm install inquirer', { stdio: 'inherit' });
+    return require('inquirer');
+  }
+})();
+const axios = (() => {
+  try { return require('axios'); } catch {
+    console.error('axios not found. Installing...');
+    require('child_process').execSync('npm install axios', { stdio: 'inherit' });
+    return require('axios');
+  }
+})();
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -224,6 +238,91 @@ function findBroadcastRunLatest(baseDir = process.cwd()) {
   return null;
 }
 
+// Read constructor inputs (if any) from compiled artifact in out/
+function getConstructorInputs(contractToCreate, baseDir = process.cwd()) {
+  try {
+    if (!contractToCreate) return [];
+    const { sourceFile, contractName } = contractToCreate;
+    const base = path.basename(sourceFile); // e.g. src/NFTAgent.sol -> NFTAgent.sol
+    const artifactDir = path.join(baseDir, 'out', base);
+    const artifactPath = path.join(artifactDir, `${contractName}.json`);
+    if (!fs.existsSync(artifactPath)) return [];
+    const art = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+    // method: constructor is in 'abi' with type 'constructor' OR in 'output' metadata
+    if (Array.isArray(art.abi)) {
+      const ctor = art.abi.find(a => a.type === 'constructor');
+      if (ctor && Array.isArray(ctor.inputs)) return ctor.inputs;
+    }
+    // fallback: try metadata (solc output)
+    if (art.metadata) {
+      try {
+        const meta = typeof art.metadata === 'string' ? JSON.parse(art.metadata) : art.metadata;
+        if (meta && meta.output && meta.output.contracts) {
+          const contracts = meta.output.contracts;
+          // find any matching contractName inside
+          for (const fileKey of Object.keys(contracts)) {
+            if (contracts[fileKey] && contracts[fileKey][contractName] && contracts[fileKey][contractName].abi) {
+              const ctor = contracts[fileKey][contractName].abi.find(a => a.type === 'constructor');
+              if (ctor && Array.isArray(ctor.inputs)) return ctor.inputs;
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return [];
+}
+
+async function getChainIdFromRpc(rpcUrl) {
+  try {
+    if (!rpcUrl || typeof rpcUrl !== 'string') {
+      throw new Error('Invalid RPC URL provided');
+    }
+    
+    // Validate URL format
+    try {
+      new URL(rpcUrl);
+    } catch {
+      throw new Error('Invalid RPC URL format');
+    }
+    
+    const res = await axios.post(rpcUrl, { 
+      jsonrpc: '2.0', 
+      id: 1, 
+      method: 'eth_chainId', 
+      params: [] 
+    }, { 
+      timeout: 4000,
+      validateStatus: (status) => status === 200
+    });
+    
+    if (res && res.data && res.data.result) {
+      return res.data.result;
+    }
+    throw new Error('Invalid response from RPC');
+  } catch (error) {
+    console.log(chalk.yellow(`⚠️  Could not fetch chain ID: ${error.message}`));
+    return null;
+  }
+}
+
+function explorerUrlForChain(chainIdHex) {
+  // Map known Somnia chainId for Shannon testnet (example from logs: 0xc488)
+  try {
+    if (!chainIdHex) return 'https://explorer.somnia.network';
+    const normalized = chainIdHex.toLowerCase();
+    if (normalized === '0xc488' || normalized === '315') return 'https://shannon-explorer.somnia.network';
+    // default
+    return 'https://explorer.somnia.network';
+  } catch (e) {
+    return 'https://explorer.somnia.network';
+  }
+}
+
 async function verifyContract(contractAddress) {
   try {
     console.log(chalk.cyan('\n🔍 Verifying contract on Somnia Explorer...'));
@@ -233,9 +332,13 @@ async function verifyContract(contractAddress) {
     
     // Simulate verification process
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
+    // Try to pick explorer URL based on configured RPC chainId (best-effort)
+    const rpc = process.env.SOMNIA_RPC_URL || process.env.RPC_URL || null;
+    const chainId = await getChainIdFromRpc(rpc);
+    const base = explorerUrlForChain(chainId);
     console.log(chalk.green('✅ Contract verified successfully!'));
-    console.log(chalk.blue(`🌐 View on explorer: https://explorer.somnia.network/address/${contractAddress}`));
+    console.log(chalk.blue(`🌐 View on explorer: ${base}/address/${contractAddress}`));
     
     return true;
   } catch (error) {
@@ -295,15 +398,42 @@ async function deploy(options = {}) {
       process.exit(1);
     }
 
-    let privateKey = decryptPrivateKey(encryptedKey);
+    // Validate and decrypt private key
+    if (!encryptedKey || typeof encryptedKey !== 'string') {
+      console.error(chalk.red('❌ Invalid private key format in environment variables.'));
+      process.exit(1);
+    }
+    
+    let privateKey;
+    try {
+      // Try decryption with default password, fallback to plaintext
+      privateKey = decryptPrivateKey(encryptedKey);
+    } catch (error) {
+      // Assume it's already decrypted if decryption fails
+      privateKey = encryptedKey;
+    }
+    
+    // Validate private key format
+    if (!privateKey || typeof privateKey !== 'string') {
+      console.error(chalk.red('❌ Private key is invalid or empty.'));
+      process.exit(1);
+    }
+    
     // Ensure privateKey is 0x-prefixed and 64 hex chars
-    if (!privateKey.startsWith('0x') && privateKey.length === 64) {
+    if (!privateKey.startsWith('0x') && privateKey.length === 64 && /^[0-9a-fA-F]{64}$/.test(privateKey)) {
       privateKey = '0x' + privateKey;
     }
-    if (privateKey.includes(':') || privateKey.length !== 66 || !privateKey.startsWith('0x')) {
-      // If still encrypted or wrong length, fail fast
-      console.error(chalk.red('❌ Private key is still encrypted or in wrong format. Please check your .env. It must be a 0x-prefixed, 64 hex character string.'));
+    
+    if (privateKey.length !== 66 || !privateKey.startsWith('0x') || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
+      console.error(chalk.red('❌ Private key format is invalid. Must be 0x-prefixed 64 hex characters.'));
       process.exit(1);
+    }
+
+    // If we have a usable private key, force broadcasting so Forge signs the tx and creates broadcast artifacts.
+    // This makes the CLI behavior consistent for users who provide PRIVATE_KEY in their .env.
+    if (privateKey && privateKey.startsWith('0x') && privateKey.length === 66) {
+      options.broadcast = true;
+      console.log(chalk.gray('📢 PRIVATE_KEY detected — forcing broadcast so Forge will sign transactions and produce broadcast artifacts.'));
     }
 
   console.log(chalk.cyan('🚀 Deploying AI Agent contract to Somnia Testnet...'));
@@ -348,6 +478,46 @@ async function deploy(options = {}) {
       }
     } else {
       contractToCreate = findContractToCreate();
+    }
+
+    // If constructor args not provided, inspect artifact and prompt (or auto-fill) if needed
+    if ((!options.constructorArgs || options.constructorArgs.length === 0) && contractToCreate) {
+      const ctorInputs = getConstructorInputs(contractToCreate);
+      if (ctorInputs && ctorInputs.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Contract constructor requires arguments. Prompting for values...'));
+        const answers = [];
+        for (const inp of ctorInputs) {
+          const name = inp.name || 'arg';
+          const type = inp.type || 'string';
+          let def = '';
+          // Provide sensible defaults
+          if (type.startsWith('address')) {
+            def = process.env.WALLET_ADDRESS || process.env.WALLETADDR || process.env.ADDRESS || '';
+          } else if (type.startsWith('uint') || type === 'uint256') {
+            def = '100';
+          } else if (type === 'bool') {
+            def = 'false';
+          } else if (type.startsWith('bytes')) {
+            def = '0x';
+          } else {
+            def = '';
+          }
+          try {
+            // Ask user (interactive); fallback to default if non-interactive
+            // If stdin is not a TTY, skip prompting and use def
+            if (process.stdin.isTTY) {
+              // eslint-disable-next-line no-await-in-loop
+              const res = await inquirer.prompt([{ name: name, message: `Constructor ${name} (${type})`, default: def }]);
+              answers.push(String(res[name]));
+            } else {
+              answers.push(String(def));
+            }
+          } catch (e) {
+            answers.push(String(def));
+          }
+        }
+        if (answers.length) options.constructorArgs = answers;
+      }
     }
 
     for (; attempt <= maxRetries; attempt++) {

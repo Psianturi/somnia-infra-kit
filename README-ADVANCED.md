@@ -38,16 +38,33 @@ This guide covers advanced features, troubleshooting, and best practices for the
 - Run `npx eslint src/commands` for linting.
 - Add more tests in `test/` as needed.
 
-## Deployment & Verification
-- Use `somnia-cli deploy` to deploy agents.
-- Deployment info saved to `.deployment.json`.
-- Auto-verification simulated; see logs for explorer links.
-## Deployment & Verification
-- Use `somnia-cli deploy` to deploy agents. The CLI uses `forge create` for Somnia and will broadcast by default.
-- If you want to prepare a transaction but NOT send it, add `--no-broadcast` to perform a dry-run.
-- The CLI automatically searches parent directories for a `.env` and will load the first one it finds, so running `somnia-cli deploy` inside a template folder will pick up `TestAgent/.env`.
-- After a deploy the CLI writes `.deployment.json` containing: address, txHash, network, timestamp, verified, txStatus, wallet. Use `cast receipt <txHash> --rpc-url <SOMNIA_RPC_URL>` to fetch the authoritative on-chain receipt.
-- Auto-verification in the CLI is simulated; for explorer verification use the explorer's API or manual verification steps.
+## Deploy internals (important)
+
+- Template deploy scripts were updated to the safer broadcast pattern. Each `script/Deploy.s.sol` in the templates now reads `PRIVATE_KEY` via `vm.envUint("PRIVATE_KEY")`, calls `vm.startBroadcast(pk)` and wraps the constructor call with `try/catch`. This helps ensure Forge signs transactions and surfaces reverts instead of silently failing.
+
+- Foundry will only write `broadcast/run-*.json` when a transaction is actually broadcast (for example, when using `--broadcast` or when a signed private key is supplied). If `run-latest.json` is missing, the CLI will:
+  1. attempt to parse forge stdout for a Deployed/Transaction hash line,
+  2. query the RPC (`eth_getTransactionReceipt`) to validate the receipt.status,
+  3. only write `.deployment.json` if the receipt shows success (status == 1).
+
+- If you want to force Forge to create broadcast artifacts locally, run with `--broadcast` and ensure `PRIVATE_KEY` is available in `.env` (or pass `--private-key` to `forge create`).
+
+## CI recommendations
+
+- Add a CI job that runs the end-to-end flow on a fresh runner:
+  1. npm ci
+  2. Install Foundry (forge)
+  3. somnia-cli init <tmp> --template <type>
+  4. cd <tmp> && bash setup.sh
+  5. export SOMNIA_RPC_URL and PRIVATE_KEY (use an ephemeral test key)
+  6. forge test && forge create --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast <contract>
+  7. Confirm `broadcast/run-latest.json` exists or `.deployment.json` recorded with `txStatus: success`.
+
+## Security & Best Practices
+
+- Never commit `.env` into the repository. Use `somnia-cli config` to store encrypted credentials where supported.
+- Prefer ephemeral keys for CI and test networks.
+- When debugging a reverted transaction, reproduce locally with Foundry using a fork of the testnet or instrument the contract locally to capture revert reasons.
 
 ## Troubleshooting
 - If a command fails, check `.env` and template structure.

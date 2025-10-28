@@ -34,8 +34,6 @@ forge test
 # Note: deploy now uses `forge create` and the CLI will BROADCAST by default.
 # Use `--no-broadcast` for a dry-run (prepare tx but do not send).
 somnia-cli deploy
-# Dry-run example (recommended before first broadcast):
-somnia-cli deploy --no-broadcast
 
 # Advanced: explicit Foundry create (equivalent low-level step)
 forge create src/AgentContract.sol:AgentContract --rpc-url https://dream-rpc.somnia.network --private-key <key> --gas-limit 13000000
@@ -46,8 +44,10 @@ forge create src/AgentContract.sol:AgentContract --rpc-url https://dream-rpc.som
 - If you get dependency errors, rerun `bash setup.sh`
 - If you get private key errors, check your .env (must be 64 hex chars, no 0x)
 
----
+Important notes about deployments
+- Templates and deploy scripts were updated to use a safer broadcast pattern: the deploy script reads `PRIVATE_KEY` from `.env` using `vm.envUint("PRIVATE_KEY")`, then calls `vm.startBroadcast(pk)` and wraps constructor calls with `try/catch` so reverts are surfaced and forge can produce signed broadcast artifacts.
 
+---
 
 
 ## 🔗 Advanced Usage & Full Guide
