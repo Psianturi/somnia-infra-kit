@@ -291,7 +291,12 @@ async function createCustomProject(projectName, config) {
   await fs.ensureDir(path.join(targetDir, 'script'));
 
   // Generate custom contract
-  const contractCode = generateCustomContract(sanitizedName, config);
+  let contractCode = generateCustomContract(sanitizedName, config);
+  
+  // Apply sanitization to ensure valid Solidity
+  const { sanitizeSoliditySource } = require('../utils/sanitizer');
+  contractCode = sanitizeSoliditySource(contractCode, { projectName: sanitizedName });
+  
   await fs.writeFile(path.join(targetDir, 'src', `${sanitizedName}.sol`), contractCode);
 
   // Create foundry.toml
@@ -343,7 +348,10 @@ async function createCustomProject(projectName, config) {
 
   contract Deploy${sanitizedName} is Script {
     function run() external {
-      vm.startBroadcast();
+      string memory key = vm.envString("PRIVATE_KEY");
+      uint256 pk = vm.parseUint(key);
+      
+      vm.startBroadcast(pk);
           
       ${sanitizedName} agent = new ${sanitizedName}();
           

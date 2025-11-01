@@ -20,9 +20,8 @@ cd MyAgent
 # 2. Install dependencies & build (one command)
 bash setup.sh
 
-# 3. Configure .env (RPC & private key)
-somnia-cli config
-# Alternative: Create .env manually (the CLI will load  .env automatically)
+# 3. Create .env 
+Create .env manually 
 # echo "SOMNIA_RPC_URL=https://dream-rpc.somnia.network" > .env
 # echo "PRIVATE_KEY=your_64_char_hex_private_key" >> .env
 # echo "WALLET_ADDRESS=your_wallet_address" >> .env

@@ -132,9 +132,6 @@ async function init(projectName, templateType = null, useWizard = false) {
       if (!templateName || typeof templateName !== 'string') {
         throw new Error('Invalid template name');
       }
-      if (templateName.includes('..') || templateName.includes('/') || templateName.includes('\\')) {
-        throw new Error('Template name contains invalid characters');
-      }
       
       const basePath = path.resolve(__dirname, '..', '..');
       const templatePath = path.resolve(basePath, templateName);
