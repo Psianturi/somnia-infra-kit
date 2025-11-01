@@ -34,8 +34,6 @@ forge test
 # Use `--no-broadcast` for a dry-run (prepare tx but do not send).
 somnia-cli deploy
 
-# Advanced: explicit Foundry create (equivalent low-level step)
-forge create src/AgentContract.sol:AgentContract --rpc-url https://dream-rpc.somnia.network --private-key <key> --gas-limit 13000000
 ```
 
 ### Troubleshooting

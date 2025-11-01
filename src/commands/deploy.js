@@ -168,6 +168,8 @@ function findContractToCreate(baseDir = process.cwd()) {
           const name = j.replace('.json', '');
           // Skip test artifacts and any artifact whose contract name ends with Test
           if (/Test$/.test(name) || /\.t\.sol$/i.test(sub) || /test/i.test(sub)) continue;
+          // Skip Deploy scripts
+          if (/^Deploy/.test(name) || /Deploy\.sol$/i.test(sub)) continue;
           if (preferredNames.includes(name) || /Agent/.test(name)) {
             const sourceFile = sub.endsWith('.sol') ? sub : (sub + '.sol');
             return { sourceFile: path.join('src', sourceFile), contractName: name };
@@ -182,7 +184,7 @@ function findContractToCreate(baseDir = process.cwd()) {
   // 2) Fallback: scan src/ for .sol and pick the first contract with a preferred name or containing 'Agent'
   try {
     if (fs.existsSync(srcDir)) {
-      const sols = fs.readdirSync(srcDir).filter(f => f.endsWith('.sol'));
+      const sols = fs.readdirSync(srcDir).filter(f => f.endsWith('.sol') && !/Deploy\.s\.sol$/i.test(f));
       for (const s of sols) {
         const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
         const m = content.match(/contract\s+([A-Za-z0-9_]+)/g);
@@ -195,7 +197,7 @@ function findContractToCreate(baseDir = process.cwd()) {
           }
         }
       }
-      // Last resort: pick first contract in first .sol
+      // Last resort: pick first contract in first .sol (excluding Deploy.s.sol)
       if (sols.length > 0) {
         const s = sols[0];
         const content = fs.readFileSync(path.join(srcDir, s), 'utf8');
